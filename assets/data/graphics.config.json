@@ -1,0 +1,36 @@
+{
+  "resolution": {
+    "width": 1920,
+    "height": 1080,
+    "pixelRatio": 1
+  },
+  "rendering": {
+    "antialias": true,
+    "preserveDrawingBuffer": false,
+    "powerPreference": "high-performance",
+    "backgroundColor": 1052719
+  },
+  "layers": {
+    "background": 0,
+    "midground": 100,
+    "foreground": 200,
+    "effects": 300,
+    "ui": 1000
+  },
+  "parallax": {
+    "enabled": true,
+    "layers": 5,
+    "baseSpeed": 0.1
+  },
+  "postProcessing": {
+    "enabled": true,
+    "bloom": true,
+    "vignette": true,
+    "colorGrading": true,
+    "crtEffect": false
+  },
+  "particles": {
+    "maxParticles": 10000,
+    "useGPU": true
+  }
+}

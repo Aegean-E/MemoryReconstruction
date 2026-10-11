@@ -1,0 +1,679 @@
+/**
+ * World System - Procedural world generation and chunk management
+ * 
+ * Implements infinite 2D world with deterministic generation,
+ * biome system, and streaming chunks for RLM compatibility.
+ */
+
+import { EventBus, GameEvents } from '@core/EventBus';
+import { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
+import { ConfigManager, GameplayConfig } from '@core/ConfigManager';
+import { RenderSystem } from '@graphics/RenderSystem';
+
+export interface ChunkData {
+  x: number;
+  y: number;
+  biome: BiomeType;
+  tiles: TileData[][];
+  entities: EntitySpawnData[];
+  generated: boolean;
+  timestamp: number;
+}
+
+export interface TileData {
+  type: TileType;
+  variant: number;
+  height: number;
+  properties: TileProperties;
+}
+
+export interface TileProperties {
+  solid: boolean;
+  damage?: number;
+  slippery?: boolean;
+  climbable?: boolean;
+  interactive?: string;
+}
+
+export interface EntitySpawnData {
+  type: string;
+  x: number;
+  y: number;
+  properties: Record<string, any>;
+}
+
+export type BiomeType = 
+  | 'ruins' 
+  | 'forest' 
+  | 'caves' 
+  | 'crystal' 
+  | 'void' 
+  | 'sanctuary';
+
+export type TileType = 
+  | 'empty' 
+  | 'floor' 
+  | 'wall' 
+  | 'platform' 
+  | 'hazard' 
+  | 'water' 
+  | 'ladder' 
+  | 'door' 
+  | 'secret';
+
+export interface BiomeConfig {
+  name: BiomeType;
+  weight: number;
+  tilePalette: TileType[];
+  entityTables: EntityTable[];
+  colorPalette: number[];
+  musicTheme: string;
+  ambientSound: string;
+}
+
+export interface EntityTable {
+  entityType: string;
+  weight: number;
+  minDepth: number;
+  maxDepth: number;
+  conditions?: string[];
+}
+
+export class WorldSystem implements IGameModule {
+  readonly name = 'worldSystem';
+  readonly version = '1.0.0';
+  readonly dependencies = ['renderSystem'];
+  readonly tokenBudget = 3000;
+
+  private eventBus: EventBus;
+  private config: GameplayConfig;
+  private renderSystem!: RenderSystem;
+  
+  // World state
+  private seed: number;
+  private rng: () => number;
+  private chunks = new Map<string, ChunkData>();
+  private loadedChunks = new Set<string>();
+  private chunkSize: number;
+  private viewDistance: number;
+  
+  // Biomes
+  private biomes: BiomeConfig[] = [];
+  private currentBiome: BiomeType = 'ruins';
+  
+  // Generation
+  private noiseCache = new Map<string, number>();
+  private generationQueue: Array<{ x: number; y: number; priority: number }> = [];
+  private generating = false;
+
+  constructor(eventBus: EventBus, config: GameplayConfig) {
+    this.eventBus = eventBus;
+    this.config = config;
+    this.chunkSize = config.world.chunkSize;
+    this.viewDistance = config.world.viewDistance;
+    this.seed = config.world.seed;
+    this.rng = this.createRNG(this.seed);
+  }
+
+  private createRNG(seed: number): () => number {
+    let state = seed >>> 0;
+    return () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 0x100000000;
+    };
+  }
+
+  async initialize(context: ModuleContext): Promise<void> {
+    this.renderSystem = context.sharedState.get('renderSystem');
+    
+    // Initialize biomes
+    this.initializeBiomes();
+    
+    // Generate initial chunks around spawn
+    const spawnChunks = this.getChunksInRadius(0, 0, this.viewDistance);
+    for (const { x, y } of spawnChunks) {
+      this.queueChunkGeneration(x, y, 10);
+    }
+    
+    // Process generation queue
+    this.processGenerationQueue();
+    
+    // Event listeners
+    this.eventBus.on('world:requestChunk', (data: any) => this.ensureChunk(data.x, data.y));
+    this.eventBus.on('player:position', (data: any) => this.onPlayerMove(data));
+    this.eventBus.on('world:transition', (data: any) => this.onBiomeTransition(data));
+    
+    this.eventBus.emit('worldSystem:ready', { seed: this.seed });
+  }
+
+  private initializeBiomes(): void {
+    this.biomes = [
+      {
+        name: 'ruins',
+        weight: 30,
+        tilePalette: ['floor', 'wall', 'platform', 'secret'],
+        entityTables: [
+          { entityType: 'scavenger', weight: 10, minDepth: 0, maxDepth: 10 },
+          { entityType: 'guardian', weight: 3, minDepth: 5, maxDepth: 20 },
+          { entityType: 'memoryEcho', weight: 5, minDepth: 0, maxDepth: 50 }
+        ],
+        colorPalette: [0x8B7355, 0x6B5B4A, 0xA08A6E, 0x4A3F35],
+        musicTheme: 'exploration',
+        ambientSound: 'wind_ruins'
+      },
+      {
+        name: 'forest',
+        weight: 25,
+        tilePalette: ['floor', 'platform', 'water', 'ladder', 'hazard'],
+        entityTables: [
+          { entityType: 'wildling', weight: 8, minDepth: 0, maxDepth: 15 },
+          { entityType: 'spirit', weight: 4, minDepth: 10, maxDepth: 30 },
+          { entityType: 'ancientTree', weight: 1, minDepth: 20, maxDepth: 50 }
+        ],
+        colorPalette: [0x2D5016, 0x3D6B1F, 0x1B3A0F, 0x4E7B2A],
+        musicTheme: 'exploration',
+        ambientSound: 'forest_ambience'
+      },
+      {
+        name: 'caves',
+        weight: 20,
+        tilePalette: ['floor', 'wall', 'platform', 'hazard', 'water', 'ladder'],
+        entityTables: [
+          { entityType: 'caveDweller', weight: 12, minDepth: 0, maxDepth: 20 },
+          { entityType: 'crystalGolem', weight: 3, minDepth: 15, maxDepth: 40 },
+          { entityType: 'shadow', weight: 6, minDepth: 10, maxDepth: 50 }
+        ],
+        colorPalette: [0x2C2C3A, 0x3A3A4E, 0x1E1E28, 0x4A4A6A],
+        musicTheme: 'combat',
+        ambientSound: 'cave_drips'
+      },
+      {
+        name: 'crystal',
+        weight: 15,
+        tilePalette: ['floor', 'platform', 'hazard', 'secret'],
+        entityTables: [
+          { entityType: 'crystalGuardian', weight: 5, minDepth: 10, maxDepth: 30 },
+          { entityType: 'prismEntity', weight: 4, minDepth: 20, maxDepth: 50 },
+          { entityType: 'memoryFragment', weight: 8, minDepth: 0, maxDepth: 50 }
+        ],
+        colorPalette: [0x8A2BE2, 0x9932CC, 0xBA55D3, 0xDA70D6],
+        musicTheme: 'combat',
+        ambientSound: 'crystal_hum'
+      },
+      {
+        name: 'void',
+        weight: 5,
+        tilePalette: ['floor', 'hazard', 'platform', 'secret'],
+        entityTables: [
+          { entityType: 'voidWalker', weight: 3, minDepth: 30, maxDepth: 100 },
+          { entityType: 'forgotten', weight: 2, minDepth: 40, maxDepth: 100 },
+          { entityType: 'memoryFragment', weight: 10, minDepth: 20, maxDepth: 100 }
+        ],
+        colorPalette: [0x0A0A0F, 0x1A1A2E, 0x16213E, 0x0F3460],
+        musicTheme: 'boss',
+        ambientSound: 'void_silence'
+      },
+      {
+        name: 'sanctuary',
+        weight: 5,
+        tilePalette: ['floor', 'platform', 'door', 'secret'],
+        entityTables: [
+          { entityType: 'keeper', weight: 1, minDepth: 0, maxDepth: 10 },
+          { entityType: 'memoryEcho', weight: 10, minDepth: 0, maxDepth: 50 }
+        ],
+        colorPalette: [0xFFD700, 0xFFA500, 0xFF8C00, 0xFFFFE0],
+        musicTheme: 'victory',
+        ambientSound: 'sanctuary_peace'
+      }
+    ];
+  }
+
+  private onPlayerMove(data: { x: number; y: number }): void {
+    const chunkX = Math.floor(data.x / this.chunkSize);
+    const chunkY = Math.floor(data.y / this.chunkSize);
+    
+    // Load chunks around player
+    const chunks = this.getChunksInRadius(chunkX, chunkY, this.viewDistance);
+    for (const { x, y } of chunks) {
+      this.ensureChunk(x, y);
+    }
+    
+    // Unload distant chunks
+    this.unloadDistantChunks(chunkX, chunkY);
+    
+    // Check biome transition
+    this.checkBiomeTransition(data.x, data.y);
+  }
+
+  private checkBiomeTransition(x: number, y: number): void {
+    const chunkX = Math.floor(x / this.chunkSize);
+    const chunkY = Math.floor(y / this.chunkSize);
+    const chunkKey = `${chunkX},${chunkY}`;
+    const chunk = this.chunks.get(chunkKey);
+    
+    if (chunk && chunk.biome !== this.currentBiome) {
+      this.currentBiome = chunk.biome;
+      const biomeConfig = this.biomes.find(b => b.name === chunk.biome);
+      if (biomeConfig) {
+        this.eventBus.emit('world:biomeChanged', { 
+          biome: chunk.biome, 
+          config: biomeConfig 
+        });
+      }
+    }
+  }
+
+  private onBiomeTransition(data: { biome: BiomeType }): void {
+    this.currentBiome = data.biome;
+  }
+
+  private getChunksInRadius(cx: number, cy: number, radius: number): Array<{ x: number; y: number }> {
+    const chunks: Array<{ x: number; y: number }> = [];
+    for (let x = cx - radius; x <= cx + radius; x++) {
+      for (let y = cy - radius; y <= cy + radius; y++) {
+        chunks.push({ x, y });
+      }
+    }
+    return chunks;
+  }
+
+  private ensureChunk(x: number, y: number): void {
+    const key = `${x},${y}`;
+    if (this.chunks.has(key)) return;
+    
+    this.queueChunkGeneration(x, y, 5);
+  }
+
+  private queueChunkGeneration(x: number, y: number, priority: number): void {
+    const key = `${x},${y}`;
+    if (this.chunks.has(key)) return;
+    if (this.generationQueue.some(c => c.x === x && c.y === y)) return;
+    
+    this.generationQueue.push({ x, y, priority });
+    this.generationQueue.sort((a, b) => b.priority - a.priority);
+  }
+
+  private async processGenerationQueue(): Promise<void> {
+    if (this.generating || this.generationQueue.length === 0) return;
+    
+    this.generating = true;
+    
+    while (this.generationQueue.length > 0) {
+      const task = this.generationQueue.shift()!;
+      await this.generateChunk(task.x, task.y);
+      
+      // Yield to main thread
+      await new Promise(r => setTimeout(r, 0));
+    }
+    
+    this.generating = false;
+  }
+
+  private async generateChunk(x: number, y: number): Promise<ChunkData> {
+    const key = `${x},${y}`;
+    
+    // Determine biome using noise
+    const biome = this.determineBiome(x, y);
+    const biomeConfig = this.biomes.find(b => b.name === biome)!;
+    
+    // Generate tiles
+    const tiles = this.generateTiles(x, y, biomeConfig);
+    
+    // Generate entities
+    const entities = this.generateEntities(x, y, biomeConfig);
+    
+    const chunk: ChunkData = {
+      x, y,
+      biome,
+      tiles,
+      entities,
+      generated: true,
+      timestamp: Date.now()
+    };
+    
+    this.chunks.set(key, chunk);
+    this.loadedChunks.add(key);
+    
+    // Render chunk
+    this.renderChunk(chunk);
+    
+    this.eventBus.emit('world:chunkGenerated', { chunk });
+    
+    return chunk;
+  }
+
+  private determineBiome(x: number, y: number): BiomeType {
+    // Use noise to determine biome
+    const noise = this.getNoise(x * 0.01, y * 0.01, 0);
+    const depthNoise = this.getNoise(x * 0.005, y * 0.005, 1);
+    
+    // Depth increases as you go further from origin
+    const distance = Math.sqrt(x * x + y * y);
+    const depth = distance * 0.5 + depthNoise * 10;
+    
+    // Biome selection based on noise and depth
+    let accumulated = 0;
+    const totalWeight = this.biomes.reduce((sum, b) => sum + b.weight, 0);
+    const threshold = noise * totalWeight;
+    
+    for (const biome of this.biomes) {
+      accumulated += biome.weight;
+      if (threshold < accumulated) {
+        // Check depth constraints
+        const hasValidEntities = biome.entityTables.some(
+          t => depth >= t.minDepth && depth <= t.maxDepth
+        );
+        if (hasValidEntities || biome.name === 'ruins') {
+          return biome.name;
+        }
+      }
+    }
+    
+    return 'ruins';
+  }
+
+  private generateTiles(x: number, y: number, biome: BiomeConfig): TileData[][] {
+    const tiles: TileData[][] = [];
+    const chunkPixelSize = this.chunkSize;
+    
+    for (let ty = 0; ty < chunkPixelSize; ty += 16) { // 16px tiles
+      const row: TileData[] = [];
+      for (let tx = 0; tx < chunkPixelSize; tx += 16) {
+        const worldX = x * chunkPixelSize + tx;
+        const worldY = y * chunkPixelSize + ty;
+        
+        // Multi-layer noise for terrain
+        const elevation = this.getNoise(worldX * 0.005, worldY * 0.005, 2);
+        const detail = this.getNoise(worldX * 0.02, worldY * 0.02, 3);
+        const structure = this.getNoise(worldX * 0.01, worldY * 0.01, 4);
+        
+        let tileType: TileType = 'empty';
+        let variant = 0;
+        let height = 0;
+        const properties: TileProperties = { solid: false };
+        
+        // Terrain generation logic
+        if (elevation > 0.6) {
+          // High ground - walls and platforms
+          if (structure > 0.7) {
+            tileType = 'wall';
+            properties.solid = true;
+            variant = Math.floor(detail * 3);
+          } else {
+            tileType = 'platform';
+            properties.solid = true;
+            variant = Math.floor(detail * 2);
+          }
+          height = Math.floor(elevation * 10);
+        } else if (elevation > 0.3) {
+          // Mid ground - floors
+          tileType = 'floor';
+          properties.solid = true;
+          variant = Math.floor(detail * 4);
+          height = Math.floor(elevation * 5);
+        } else if (elevation > 0.1) {
+          // Low ground - hazards or water
+          if (detail > 0.7) {
+            tileType = 'hazard';
+            properties.solid = false;
+            properties.damage = 10;
+            variant = Math.floor(detail * 2);
+          } else {
+            tileType = 'water';
+            properties.solid = false;
+            variant = 0;
+          }
+        } else if (structure > 0.85) {
+          // Rare structures
+          tileType = 'secret';
+          properties.solid = false;
+          properties.interactive = 'secret';
+          variant = 0;
+        }
+        
+        row.push({ type: tileType, variant, height, properties });
+      }
+      tiles.push(row);
+    }
+    
+    return tiles;
+  }
+
+  private generateEntities(x: number, y: number, biome: BiomeConfig): EntitySpawnData[] {
+    const entities: EntitySpawnData[] = [];
+    const chunkPixelSize = this.chunkSize;
+    const distance = Math.sqrt(x * x + y * y);
+    const depth = distance * 0.5;
+    
+    for (const table of biome.entityTables) {
+      if (depth < table.minDepth || depth > table.maxDepth) continue;
+      
+      // Determine spawn count based on weight and chunk size
+      const expectedCount = (table.weight / 100) * (chunkPixelSize / 512) * 10;
+      const count = Math.floor(expectedCount) + (this.rng() < (expectedCount % 1) ? 1 : 0);
+      
+      for (let i = 0; i < count; i++) {
+        // Find valid spawn position
+        let spawnX = 0, spawnY = 0;
+        let attempts = 0;
+        
+        do {
+          spawnX = x * chunkPixelSize + this.rng() * chunkPixelSize;
+          spawnY = y * chunkPixelSize + this.rng() * chunkPixelSize;
+          attempts++;
+        } while (attempts < 10 && !this.isValidSpawnPosition(spawnX, spawnY, x, y));
+        
+        if (attempts < 10) {
+          entities.push({
+            type: table.entityType,
+            x: spawnX,
+            y: spawnY,
+            properties: {
+              biome: biome.name,
+              depth,
+              patrolRadius: 100 + this.rng() * 200
+            }
+          });
+        }
+      }
+    }
+    
+    return entities;
+  }
+
+  private isValidSpawnPosition(x: number, y: number, chunkX: number, chunkY: number): boolean {
+    const key = `${chunkX},${chunkY}`;
+    const chunk = this.chunks.get(key);
+    if (!chunk) return true; // Not generated yet, assume valid
+    
+    const tx = Math.floor((x % this.chunkSize) / 16);
+    const ty = Math.floor((y % this.chunkSize) / 16);
+    
+    if (ty < 0 || ty >= chunk.tiles.length) return false;
+    if (tx < 0 || tx >= chunk.tiles[0].length) return false;
+    
+    const tile = chunk.tiles[ty][tx];
+    return tile.type === 'floor' || tile.type === 'platform';
+  }
+
+  private renderChunk(chunk: ChunkData): void {
+    if (!this.renderSystem) return;
+    
+    const layer = this.renderSystem.getLayer('background');
+    if (!layer) return;
+    
+    // Create tile graphics (simplified - would use tilemap in production)
+    const container = new PIXI.Container();
+    container.name = `chunk_${chunk.x}_${chunk.y}`;
+    
+    const biomeConfig = this.biomes.find(b => b.name === chunk.biome)!;
+    const baseColor = biomeConfig.colorPalette[0];
+    
+    for (let ty = 0; ty < chunk.tiles.length; ty++) {
+      for (let tx = 0; tx < chunk.tiles[ty].length; tx++) {
+        const tile = chunk.tiles[ty][tx];
+        if (tile.type === 'empty') continue;
+        
+        const gfx = new PIXI.Graphics();
+        const color = this.getTileColor(tile, biomeConfig);
+        gfx.rect(tx * 16, ty * 16, 16, 16);
+        gfx.fill({ color, alpha: tile.type === 'hazard' ? 0.6 : 1 });
+        
+        if (tile.properties.solid) {
+          gfx.rect(tx * 16, ty * 16, 16, 16);
+          gfx.stroke({ color: 0x000000, width: 1, alpha: 0.3 });
+        }
+        
+        container.addChild(gfx);
+      }
+    }
+    
+    container.position.set(chunk.x * this.chunkSize, chunk.y * this.chunkSize);
+    layer.addChild(container);
+  }
+
+  private getTileColor(tile: TileData, biome: BiomeConfig): number {
+    const colors = biome.colorPalette;
+    const baseIndex = Math.min(tile.variant, colors.length - 1);
+    return colors[baseIndex];
+  }
+
+  private unloadDistantChunks(playerChunkX: number, playerChunkY: number): void {
+    const unloadDistance = this.viewDistance + 2;
+    
+    for (const key of this.loadedChunks) {
+      const [x, y] = key.split(',').map(Number);
+      const dx = Math.abs(x - playerChunkX);
+      const dy = Math.abs(y - playerChunkY);
+      
+      if (dx > unloadDistance || dy > unloadDistance) {
+        this.unloadChunk(x, y);
+      }
+    }
+  }
+
+  private unloadChunk(x: number, y: number): void {
+    const key = `${x},${y}`;
+    const chunk = this.chunks.get(key);
+    if (!chunk) return;
+    
+    // Remove from render layer
+    const layer = this.renderSystem?.getLayer('background');
+    if (layer) {
+      const container = layer.getChildByName(`chunk_${x}_${y}`);
+      if (container) {
+        layer.removeChild(container);
+        container.destroy({ children: true });
+      }
+    }
+    
+    this.loadedChunks.delete(key);
+    this.eventBus.emit('world:chunkUnloaded', { x, y });
+  }
+
+  private getNoise(x: number, y: number, seed: number): number {
+    const key = `${x.toFixed(3)},${y.toFixed(3)},${seed}`;
+    if (this.noiseCache.has(key)) return this.noiseCache.get(key)!;
+    
+    // Simple deterministic noise (Perlin-like)
+    const n = this.hash(x * 1000 + seed, y * 1000 + seed);
+    const value = (n / 0x100000000) * 2 - 1;
+    this.noiseCache.set(key, value);
+    return value;
+  }
+
+  private hash(x: number, y: number): number {
+    let h = (x * 1664525 + 1013904223) ^ (y * 1664525 + 1013904223);
+    h = (h ^ (h >>> 16)) * 0x45d9f3b;
+    h = (h ^ (h >>> 16)) * 0x45d9f3b;
+    h = h ^ (h >>> 16);
+    return h >>> 0;
+  }
+
+  // Public API
+
+  getChunk(x: number, y: number): ChunkData | undefined {
+    return this.chunks.get(`${x},${y}`);
+  }
+
+  getTileAt(worldX: number, worldY: number): TileData | null {
+    const chunkX = Math.floor(worldX / this.chunkSize);
+    const chunkY = Math.floor(worldY / this.chunkSize);
+    const chunk = this.chunks.get(`${chunkX},${chunkY}`);
+    if (!chunk) return null;
+    
+    const tx = Math.floor((worldX % this.chunkSize) / 16);
+    const ty = Math.floor((worldY % this.chunkSize) / 16);
+    
+    if (ty < 0 || ty >= chunk.tiles.length) return null;
+    if (tx < 0 || tx >= chunk.tiles[0].length) return null;
+    
+    return chunk.tiles[ty][tx];
+  }
+
+  isSolidAt(worldX: number, worldY: number): boolean {
+    const tile = this.getTileAt(worldX, worldY);
+    return tile?.properties.solid ?? false;
+  }
+
+  getBiomeAt(worldX: number, worldY: number): BiomeType {
+    const chunkX = Math.floor(worldX / this.chunkSize);
+    const chunkY = Math.floor(worldY / this.chunkSize);
+    const chunk = this.chunks.get(`${chunkX},${chunkY}`);
+    return chunk?.biome ?? 'ruins';
+  }
+
+  getSpawnEntities(chunkX: number, chunkY: number): EntitySpawnData[] {
+    const chunk = this.chunks.get(`${chunkX},${chunkY}`);
+    return chunk?.entities ?? [];
+  }
+
+  update(deltaTime: number): void {
+    // Process generation queue periodically
+    if (this.generationQueue.length > 0 && !this.generating) {
+      this.processGenerationQueue();
+    }
+  }
+
+  async shutdown(): Promise<void> {
+    // Unload all chunks
+    for (const key of this.loadedChunks) {
+      const [x, y] = key.split(',').map(Number);
+      this.unloadChunk(x, y);
+    }
+    this.chunks.clear();
+    this.loadedChunks.clear();
+  }
+
+  serialize(): ModuleState {
+    return {
+      version: this.version,
+      timestamp: Date.now(),
+      data: {
+        seed: this.seed,
+        currentBiome: this.currentBiome,
+        loadedChunks: Array.from(this.loadedChunks),
+        chunks: Array.from(this.chunks.entries()).map(([key, chunk]) => [key, chunk])
+      },
+      checksum: 'world'
+    };
+  }
+
+  deserialize(state: ModuleState): void {
+    if (state.data.seed) this.seed = state.data.seed;
+    if (state.data.currentBiome) this.currentBiome = state.data.currentBiome;
+    if (state.data.loadedChunks) this.loadedChunks = new Set(state.data.loadedChunks);
+    if (state.data.chunks) {
+      this.chunks = new Map(state.data.chunks);
+      // Re-render loaded chunks
+      for (const chunk of this.chunks.values()) {
+        if (this.loadedChunks.has(`${chunk.x},${chunk.y}`)) {
+          this.renderChunk(chunk);
+        }
+      }
+    }
+  }
+}
+
+// Need to import PIXI for the renderChunk method
+import * as PIXI from 'pixi.js';

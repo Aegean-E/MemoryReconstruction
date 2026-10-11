@@ -1,0 +1,447 @@
+{
+  "enemies": [
+    {
+      "id": "scavenger",
+      "name": "Scavenger",
+      "description": "A desperate survivor driven mad by memory loss. Attacks anything that moves.",
+      "type": "scavenger",
+      "biome": "ruins",
+      "stats": {
+        "health": 50,
+        "maxHealth": 50,
+        "damage": 10,
+        "speed": 80,
+        "armor": 5,
+        "resistance": 5,
+        "knockbackResistance": 20,
+        "xpValue": 25,
+        "memoryValue": 5
+      },
+      "ai": {
+        "behavior": "chase",
+        "aggroRange": 200,
+        "attackRange": 40,
+        "attackCooldown": 1.5,
+        "patrolRadius": 150
+      },
+      "hitbox": { "width": 24, "height": 32, "offsetX": 0, "offsetY": -8 },
+      "sprite": { "texture": "enemy_scavenger", "width": 32, "height": 48, "animations": ["idle", "walk", "attack", "stunned", "death"] },
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.3, "min": 1, "max": 2 },
+        { "item": "fragment_shard", "chance": 0.6, "min": 1, "max": 3 },
+        { "item": "memory_elixir", "chance": 0.1, "min": 1, "max": 1 }
+      ],
+      "variants": [
+        { "name": "Scavenger Leader", "healthMult": 1.5, "damageMult": 1.3, "xpMult": 2, "chance": 0.1 }
+      ]
+    },
+    {
+      "id": "guardian",
+      "name": "Guardian",
+      "description": "Ancient construct tasked with protecting the ruins. Slow but devastating.",
+      "type": "guardian",
+      "biome": "ruins",
+      "stats": {
+        "health": 200,
+        "maxHealth": 200,
+        "damage": 25,
+        "speed": 50,
+        "armor": 30,
+        "resistance": 20,
+        "knockbackResistance": 60,
+        "xpValue": 100,
+        "memoryValue": 20
+      },
+      "ai": {
+        "behavior": "patrol_chase",
+        "aggroRange": 300,
+        "attackRange": 60,
+        "attackCooldown": 2.0,
+        "patrolRadius": 200
+      },
+      "hitbox": { "width": 40, "height": 48, "offsetX": 0, "offsetY": -8 },
+      "sprite": { "texture": "enemy_guardian", "width": 64, "height": 64, "animations": ["idle", "walk", "attack", "stunned", "death"] },
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.5, "min": 2, "max": 4 },
+        { "item": "core_memory", "chance": 0.05, "min": 1, "max": 1 },
+        { "item": "guardian_plate", "chance": 0.1, "min": 1, "max": 1 }
+      ],
+      "variants": [
+        { "name": "Awakened Guardian", "healthMult": 2, "damageMult": 1.5, "armorMult": 1.5, "xpMult": 3, "chance": 0.05 }
+      ]
+    },
+    {
+      "id": "memory_echo",
+      "name": "Memory Echo",
+      "description": "A fragment of a lost soul, repeating its final moments. Fast and elusive.",
+      "type": "memoryEcho",
+      "biome": "ruins",
+      "stats": {
+        "health": 30,
+        "maxHealth": 30,
+        "damage": 15,
+        "speed": 120,
+        "armor": 0,
+        "resistance": 10,
+        "knockbackResistance": 10,
+        "xpValue": 15,
+        "memoryValue": 10
+      },
+      "ai": {
+        "behavior": "hit_and_run",
+        "aggroRange": 400,
+        "attackRange": 80,
+        "attackCooldown": 1.0,
+        "patrolRadius": 300
+      },
+      "hitbox": { "width": 20, "height": 30, "offsetX": 0, "offsetY": -8 },
+      "sprite": { "texture": "enemy_echo", "width": 32, "height": 48, "animations": ["idle", "walk", "attack", "phase", "death"] },
+      "abilities": ["phase_shift"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.4, "min": 1, "max": 3 },
+        { "item": "echo_amulet", "chance": 0.02, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "wildling",
+      "name": "Wildling",
+      "description": "Forest spirit corrupted by memory loss. Territorial and aggressive.",
+      "type": "wildling",
+      "biome": "forest",
+      "stats": {
+        "health": 60,
+        "maxHealth": 60,
+        "damage": 12,
+        "speed": 100,
+        "armor": 10,
+        "resistance": 15,
+        "knockbackResistance": 25,
+        "xpValue": 30,
+        "memoryValue": 8
+      },
+      "ai": {
+        "behavior": "territorial",
+        "aggroRange": 250,
+        "attackRange": 50,
+        "attackCooldown": 1.8,
+        "patrolRadius": 180
+      },
+      "hitbox": { "width": 28, "height": 36, "offsetX": 0, "offsetY": -8 },
+      "sprite": { "texture": "enemy_wildling", "width": 48, "height": 48, "animations": ["idle", "walk", "attack", "stunned", "death"] },
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.35, "min": 1, "max": 2 },
+        { "item": "fragment_shard", "chance": 0.5, "min": 2, "max": 4 }
+      ]
+    },
+    {
+      "id": "spirit",
+      "name": "Forest Spirit",
+      "description": "Ancient guardian of the forest. Uses nature magic to protect its domain.",
+      "type": "spirit",
+      "biome": "forest",
+      "stats": {
+        "health": 150,
+        "maxHealth": 150,
+        "damage": 20,
+        "speed": 70,
+        "armor": 15,
+        "resistance": 40,
+        "knockbackResistance": 40,
+        "xpValue": 80,
+        "memoryValue": 25
+      },
+      "ai": {
+        "behavior": "ranged_support",
+        "aggroRange": 350,
+        "attackRange": 200,
+        "attackCooldown": 2.5,
+        "patrolRadius": 250
+      },
+      "hitbox": { "width": 32, "height": 40, "offsetX": 0, "offsetY": -12 },
+      "sprite": { "texture": "enemy_spirit", "width": 48, "height": 64, "animations": ["idle", "float", "cast", "stunned", "death"] },
+      "abilities": ["nature_bolt", "healing_bloom", "entangling_roots"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.6, "min": 3, "max": 5 },
+        { "item": "core_memory", "chance": 0.08, "min": 1, "max": 1 },
+        { "item": "clarity_potion", "chance": 0.2, "min": 1, "max": 2 }
+      ]
+    },
+    {
+      "id": "cave_dweller",
+      "name": "Cave Dweller",
+      "description": "Pale, blind creature that hunts by sound. Extremely sensitive to noise.",
+      "type": "caveDweller",
+      "biome": "caves",
+      "stats": {
+        "health": 80,
+        "maxHealth": 80,
+        "damage": 18,
+        "speed": 90,
+        "armor": 15,
+        "resistance": 10,
+        "knockbackResistance": 30,
+        "xpValue": 40,
+        "memoryValue": 12
+      },
+      "ai": {
+        "behavior": "sound_hunter",
+        "aggroRange": 150,
+        "attackRange": 45,
+        "attackCooldown": 1.2,
+        "patrolRadius": 100
+      },
+      "hitbox": { "width": 26, "height": 34, "offsetX": 0, "offsetY": -8 },
+      "sprite": { "texture": "enemy_cave_dweller", "width": 40, "height": 48, "animations": ["idle", "walk", "attack", "listen", "stunned", "death"] },
+      "abilities": ["sonic_screech"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.4, "min": 2, "max": 3 },
+        { "item": "fragment_shard", "chance": 0.7, "min": 2, "max": 5 }
+      ]
+    },
+    {
+      "id": "crystal_golem",
+      "name": "Crystal Golem",
+      "description": "Massive construct of living crystal. Reflects projectiles and channels light.",
+      "type": "crystalGolem",
+      "biome": "caves",
+      "stats": {
+        "health": 300,
+        "maxHealth": 300,
+        "damage": 30,
+        "speed": 40,
+        "armor": 50,
+        "resistance": 50,
+        "knockbackResistance": 80,
+        "xpValue": 150,
+        "memoryValue": 40
+      },
+      "ai": {
+        "behavior": "tank",
+        "aggroRange": 200,
+        "attackRange": 80,
+        "attackCooldown": 3.0,
+        "patrolRadius": 150
+      },
+      "hitbox": { "width": 56, "height": 64, "offsetX": 0, "offsetY": -16 },
+      "sprite": { "texture": "enemy_crystal_golem", "width": 80, "height": 80, "animations": ["idle", "walk", "attack", "reflect", "stunned", "death"] },
+      "abilities": ["crystal_reflect", "prism_beam", "shard_explosion"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.8, "min": 5, "max": 8 },
+        { "item": "core_memory", "chance": 0.15, "min": 1, "max": 2 },
+        { "item": "crystal_carapace", "chance": 0.1, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "shadow",
+      "name": "Shadow",
+      "description": "Living darkness that feeds on memories. Can phase through walls.",
+      "type": "shadow",
+      "biome": "caves",
+      "stats": {
+        "health": 100,
+        "maxHealth": 100,
+        "damage": 22,
+        "speed": 110,
+        "armor": 5,
+        "resistance": 30,
+        "knockbackResistance": 15,
+        "xpValue": 60,
+        "memoryValue": 30
+      },
+      "ai": {
+        "behavior": "ambush",
+        "aggroRange": 300,
+        "attackRange": 60,
+        "attackCooldown": 1.5,
+        "patrolRadius": 200
+      },
+      "hitbox": { "width": 24, "height": 32, "offsetX": 0, "offsetY": -8 },
+      "sprite": { "texture": "enemy_shadow", "width": 48, "height": 48, "animations": ["idle", "phase", "attack", "stunned", "death"] },
+      "abilities": ["shadow_phase", "memory_drain", "darkness_veil"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.5, "min": 3, "max": 5 },
+        { "item": "phase_ring", "chance": 0.03, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "crystal_guardian",
+      "name": "Crystal Guardian",
+      "description": "Elegant defender of the crystal gardens. Fights with precision and grace.",
+      "type": "crystalGuardian",
+      "biome": "crystal",
+      "stats": {
+        "health": 180,
+        "maxHealth": 180,
+        "damage": 28,
+        "speed": 85,
+        "armor": 25,
+        "resistance": 35,
+        "knockbackResistance": 45,
+        "xpValue": 120,
+        "memoryValue": 35
+      },
+      "ai": {
+        "behavior": "duelist",
+        "aggroRange": 280,
+        "attackRange": 70,
+        "attackCooldown": 1.8,
+        "patrolRadius": 200
+      },
+      "hitbox": { "width": 30, "height": 44, "offsetX": 0, "offsetY": -10 },
+      "sprite": { "texture": "enemy_crystal_guardian", "width": 48, "height": 64, "animations": ["idle", "walk", "attack", "parry", "stunned", "death"] },
+      "abilities": ["crystal_parry", "refracting_slash", "light_burst"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.7, "min": 4, "max": 6 },
+        { "item": "core_memory", "chance": 0.1, "min": 1, "max": 1 },
+        { "item": "echo_dagger", "chance": 0.05, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "prism_entity",
+      "name": "Prism Entity",
+      "description": "Being of pure refracted light. Splits into multiple copies when damaged.",
+      "type": "prismEntity",
+      "biome": "crystal",
+      "stats": {
+        "health": 120,
+        "maxHealth": 120,
+        "damage": 20,
+        "speed": 95,
+        "armor": 10,
+        "resistance": 60,
+        "knockbackResistance": 20,
+        "xpValue": 90,
+        "memoryValue": 45
+      },
+      "ai": {
+        "behavior": "splitter",
+        "aggroRange": 300,
+        "attackRange": 150,
+        "attackCooldown": 2.0,
+        "patrolRadius": 250
+      },
+      "hitbox": { "width": 28, "height": 36, "offsetX": 0, "offsetY": -8 },
+      "sprite": { "texture": "enemy_prism_entity", "width": 48, "height": 48, "animations": ["idle", "float", "attack", "split", "stunned", "death"] },
+      "abilities": ["prism_split", "rainbow_beam", "blinding_flash"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.6, "min": 3, "max": 5 },
+        { "item": "memory_pendant", "chance": 0.08, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "void_walker",
+      "name": "Void Walker",
+      "description": "Entity from the spaces between memories. Erases what it touches.",
+      "type": "voidWalker",
+      "biome": "void",
+      "stats": {
+        "health": 250,
+        "maxHealth": 250,
+        "damage": 40,
+        "speed": 100,
+        "armor": 20,
+        "resistance": 40,
+        "knockbackResistance": 50,
+        "xpValue": 200,
+        "memoryValue": 60
+      },
+      "ai": {
+        "behavior": "relentless",
+        "aggroRange": 500,
+        "attackRange": 80,
+        "attackCooldown": 1.5,
+        "patrolRadius": 400
+      },
+      "hitbox": { "width": 36, "height": 52, "offsetX": 0, "offsetY": -12 },
+      "sprite": { "texture": "enemy_void_walker", "width": 64, "height": 80, "animations": ["idle", "walk", "attack", "void_step", "stunned", "death"] },
+      "abilities": ["void_step", "erasure_touch", "memory_void", "reality_tear"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 0.9, "min": 8, "max": 12 },
+        { "item": "core_memory", "chance": 0.25, "min": 1, "max": 2 },
+        { "item": "void_cleaver", "chance": 0.05, "min": 1, "max": 1 },
+        { "item": "primordial_memory", "chance": 0.01, "min": 1, "max": 1 }
+      ]
+    },
+    {
+      "id": "forgotten",
+      "name": "The Forgotten",
+      "description": "Those who were completely erased from memory. They seek to be remembered.",
+      "type": "forgotten",
+      "biome": "void",
+      "stats": {
+        "health": 500,
+        "maxHealth": 500,
+        "damage": 35,
+        "speed": 70,
+        "armor": 30,
+        "resistance": 50,
+        "knockbackResistance": 70,
+        "xpValue": 500,
+        "memoryValue": 200
+      },
+      "ai": {
+        "behavior": "boss",
+        "aggroRange": 600,
+        "attackRange": 100,
+        "attackCooldown": 2.0,
+        "patrolRadius": 0
+      },
+      "hitbox": { "width": 48, "height": 64, "offsetX": 0, "offsetY": -16 },
+      "sprite": { "texture": "enemy_forgotten", "width": 96, "height": 96, "animations": ["idle", "walk", "attack", "special", "stunned", "death", "phase2", "phase3"] },
+      "abilities": ["memory_surge", "forgotten_army", "erasure_wave", "void_domain", "final_remembrance"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 1.0, "min": 20, "max": 30 },
+        { "item": "core_memory", "chance": 1.0, "min": 3, "max": 5 },
+        { "item": "primordial_memory", "chance": 0.5, "min": 1, "max": 1 },
+        { "item": "sanctuary_key", "chance": 1.0, "min": 1, "max": 1 }
+      ],
+      "phases": [
+        { "healthThreshold": 0.66, "newAbilities": ["forgotten_army"], "speedMult": 1.2 },
+        { "healthThreshold": 0.33, "newAbilities": ["void_domain"], "damageMult": 1.5 }
+      ]
+    },
+    {
+      "id": "keeper",
+      "name": "The Keeper",
+      "description": "Guardian of the Sanctuary. Tests those who seek the truth.",
+      "type": "keeper",
+      "biome": "sanctuary",
+      "stats": {
+        "health": 1000,
+        "maxHealth": 1000,
+        "damage": 50,
+        "speed": 60,
+        "armor": 60,
+        "resistance": 60,
+        "knockbackResistance": 90,
+        "xpValue": 1000,
+        "memoryValue": 500
+      },
+      "ai": {
+        "behavior": "final_boss",
+        "aggroRange": 800,
+        "attackRange": 120,
+        "attackCooldown": 1.0,
+        "patrolRadius": 0
+      },
+      "hitbox": { "width": 56, "height": 72, "offsetX": 0, "offsetY": -20 },
+      "sprite": { "texture": "enemy_keeper", "width": 128, "height": 128, "animations": ["idle", "walk", "attack", "judgment", "reconstruction", "stunned", "death", "phase2", "phase3", "true_form"] },
+      "abilities": ["memory_judgment", "reconstruction_beam", "timeline_shift", "true_ending", "world_rebirth"],
+      "lootTable": [
+        { "item": "memory_fragment", "chance": 1.0, "min": 50, "max": 100 },
+        { "item": "core_memory", "chance": 1.0, "min": 10, "max": 20 },
+        { "item": "primordial_memory", "chance": 1.0, "min": 1, "max": 1 }
+      ],
+      "phases": [
+        { "healthThreshold": 0.75, "newAbilities": ["timeline_shift"], "dialogue": "You seek what was lost..." },
+        { "healthThreshold": 0.5, "newAbilities": ["reconstruction_beam"], "dialogue": "Memory is not static..." },
+        { "healthThreshold": 0.25, "newAbilities": ["true_ending"], "dialogue": "Then create anew." }
+      ]
+    }
+  ],
+  "eliteModifiers": [
+    { "name": "Veteran", "healthMult": 1.5, "damageMult": 1.2, "xpMult": 1.5, "color": 0xffaa00, "chance": 0.08 },
+    { "name": "Champion", "healthMult": 2, "damageMult": 1.5, "speedMult": 1.2, "xpMult": 2, "color": 0xff5500, "chance": 0.03 },
+    { "name": "Nightmare", "healthMult": 3, "damageMult": 2, "speedMult": 1.3, "armorMult": 2, "xpMult": 5, "color": 0xaa00ff, "chance": 0.01 }
+  ]
+}

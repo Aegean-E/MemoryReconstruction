@@ -1,0 +1,170 @@
+{
+  "weapons": [
+    {
+      "id": "memory_blade",
+      "name": "Memory Blade",
+      "description": "A sword forged from crystallized memories. Cuts through the veil between past and present.",
+      "type": "weapon",
+      "rarity": "rare",
+      "stats": { "damage": 15, "critChance": 0.1, "speed": 1.2 },
+      "abilities": ["memory_slash"],
+      "maxStack": 1
+    },
+    {
+      "id": "echo_dagger",
+      "name": "Echo Dagger",
+      "description": "Leaves afterimages of its strikes. Each hit resonates with previous wounds.",
+      "type": "weapon",
+      "rarity": "uncommon",
+      "stats": { "damage": 10, "critChance": 0.15, "speed": 1.5 },
+      "abilities": ["echo_strike"],
+      "maxStack": 1
+    },
+    {
+      "id": "void_cleaver",
+      "name": "Void Cleaver",
+      "description": "Devours the memories of those it strikes. The wielder hears whispers of forgotten lives.",
+      "type": "weapon",
+      "rarity": "epic",
+      "stats": { "damage": 25, "critChance": 0.05, "speed": 0.8, "lifesteal": 0.1 },
+      "abilities": ["void_devour"],
+      "maxStack": 1
+    }
+  ],
+  "armor": [
+    {
+      "id": "scavenger_vest",
+      "name": "Scavenger's Vest",
+      "description": "Patchwork armor stitched from ruins. Light but offers decent protection.",
+      "type": "armor",
+      "rarity": "common",
+      "stats": { "armor": 15, "moveSpeed": 10 },
+      "maxStack": 1
+    },
+    {
+      "id": "guardian_plate",
+      "name": "Guardian's Plate",
+      "description": "Ancient armor worn by the first Memory Walkers. Heavy but nearly impenetrable.",
+      "type": "armor",
+      "rarity": "rare",
+      "stats": { "armor": 50, "resistance": 20, "moveSpeed": -20 },
+      "maxStack": 1
+    },
+    {
+      "id": "crystal_carapace",
+      "name": "Crystal Carapace",
+      "description": "Living crystal that grows over the wearer. Reflects magic and heals slowly.",
+      "type": "armor",
+      "rarity": "epic",
+      "stats": { "armor": 30, "resistance": 40, "regen": 2 },
+      "maxStack": 1
+    }
+  ],
+  "accessories": [
+    {
+      "id": "memory_pendant",
+      "name": "Memory Pendant",
+      "description": "Glows faintly near memory fragments. Increases fragment find rate.",
+      "type": "accessory",
+      "rarity": "uncommon",
+      "stats": { "memoryFindRate": 0.25, "mana": 20 },
+      "maxStack": 1
+    },
+    {
+      "id": "phase_ring",
+      "name": "Phase Ring",
+      "description": "Allows brief phasing through solid matter. Reduces dash cooldown.",
+      "type": "accessory",
+      "rarity": "rare",
+      "stats": { "dashCooldownReduction": 0.3, "dashDistance": 25 },
+      "maxStack": 1
+    },
+    {
+      "id": "echo_amulet",
+      "name": "Echo Amulet",
+      "description": "Stores the echo of the last attack. Next attack deals bonus damage.",
+      "type": "accessory",
+      "rarity": "epic",
+      "stats": { "echoDamage": 1.5, "critMultiplier": 0.25 },
+      "maxStack": 1
+    }
+  ],
+  "consumables": [
+    {
+      "id": "memory_elixir",
+      "name": "Memory Elixir",
+      "description": "Restores health and mana. Tastes like your favorite childhood memory.",
+      "type": "consumable",
+      "rarity": "common",
+      "stats": { "heal": 50, "manaRestore": 30 },
+      "maxStack": 10
+    },
+    {
+      "id": "clarity_potion",
+      "name": "Clarity Potion",
+      "description": "Removes all status effects and grants brief invincibility.",
+      "type": "consumable",
+      "rarity": "uncommon",
+      "stats": { "cleanse": true, "invincibility": 3 },
+      "maxStack": 5
+    },
+    {
+      "id": "fragment_shard",
+      "name": "Fragment Shard",
+      "description": "A piece of a larger memory. Combine 10 to form a Memory Fragment.",
+      "type": "consumable",
+      "rarity": "common",
+      "stats": { "fragmentValue": 1 },
+      "maxStack": 99
+    }
+  ],
+  "keys": [
+    {
+      "id": "ruins_key",
+      "name": "Ruins Key",
+      "description": "Opens ancient doors in the Ruins biome. Engraved with a forgotten symbol.",
+      "type": "key",
+      "rarity": "common",
+      "stats": { "biome": "ruins" },
+      "maxStack": 1
+    },
+    {
+      "id": "sanctuary_key",
+      "name": "Sanctuary Key",
+      "description": "Grants access to the inner sanctum. Warm to the touch.",
+      "type": "key",
+      "rarity": "legendary",
+      "stats": { "biome": "sanctuary" },
+      "maxStack": 1
+    }
+  ],
+  "memories": [
+    {
+      "id": "memory_fragment",
+      "name": "Memory Fragment",
+      "description": "A piece of the world's lost history. Collect to reconstruct the truth.",
+      "type": "memory",
+      "rarity": "uncommon",
+      "stats": { "memoryValue": 10, "lore": "fragment_001" },
+      "maxStack": 99
+    },
+    {
+      "id": "core_memory",
+      "name": "Core Memory",
+      "description": "A pivotal moment in the world's history. Radiates power.",
+      "type": "memory",
+      "rarity": "epic",
+      "stats": { "memoryValue": 100, "lore": "core_001", "unlocksAbility": "heal" },
+      "maxStack": 1
+    },
+    {
+      "id": "primordial_memory",
+      "name": "Primordial Memory",
+      "description": "The first memory of the world. Contains the secret of reconstruction.",
+      "type": "memory",
+      "rarity": "legendary",
+      "stats": { "memoryValue": 1000, "lore": "primordial_001", "unlocksAbility": "ultimate" },
+      "maxStack": 1
+    }
+  ]
+}

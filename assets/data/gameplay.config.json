@@ -1,0 +1,34 @@
+{
+  "player": {
+    "baseHealth": 100,
+    "baseSpeed": 200,
+    "baseDamage": 10,
+    "invincibilityFrames": 0.5,
+    "dashCooldown": 1.0,
+    "dashDistance": 150
+  },
+  "combat": {
+    "hitPause": 0.05,
+    "knockbackForce": 300,
+    "criticalChance": 0.05,
+    "criticalMultiplier": 2.0,
+    "staggerThreshold": 20
+  },
+  "world": {
+    "chunkSize": 512,
+    "viewDistance": 3,
+    "seed": 42,
+    "biomeCount": 6
+  },
+  "progression": {
+    "xpCurve": [0, 100, 250, 500, 1000, 2000, 4000, 8000, 16000, 32000],
+    "maxLevel": 50,
+    "statPointsPerLevel": 3
+  },
+  "roguelike": {
+    "enabled": true,
+    "permadeath": false,
+    "metaProgression": true,
+    "runSeed": null
+  }
+}

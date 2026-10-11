@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventBus, GameEvents } from '@core/EventBus';
 import { ModuleRegistry } from '@core/ModuleRegistry';
 import { ConfigManager, ConfigSchemas } from '@core/ConfigManager';
@@ -31,7 +31,7 @@ describe('Core Systems', () => {
       expect(handler).not.toHaveBeenCalled();
     });
 
-    it('should track history', async () => {
+    it('should track history', () => {
       eventBus.emitSync('test:event', { data: 'test' });
       
       const history = eventBus.getHistory({ event: 'test:event' });
@@ -80,7 +80,7 @@ describe('Core Systems', () => {
         version: '1.0.0',
         dependencies: ['moduleB'],
         tokenBudget: 100,
-        initialize: vi.fn().mockImplementation(async () => { initOrder.push('A'); }),
+            initialize: vi.fn().mockImplementation(async () => { initOrder.push('moduleA'); }),
         update: vi.fn(),
         shutdown: vi.fn().mockResolvedValue(undefined),
         serialize: () => ({ version: '1.0.0', timestamp: Date.now(), data: {}, checksum: 'test' }),
@@ -92,7 +92,7 @@ describe('Core Systems', () => {
         version: '1.0.0',
         dependencies: [],
         tokenBudget: 100,
-        initialize: vi.fn().mockImplementation(async () => { initOrder.push('B'); }),
+            initialize: vi.fn().mockImplementation(async () => { initOrder.push('moduleB'); }),
         update: vi.fn(),
         shutdown: vi.fn().mockResolvedValue(undefined),
         serialize: () => ({ version: '1.0.0', timestamp: Date.now(), data: {}, checksum: 'test' }),
@@ -107,7 +107,7 @@ describe('Core Systems', () => {
       expect(initOrder).toEqual(['moduleB', 'moduleA']);
     });
 
-    it('should calculate token budget', () => {
+    it('should calculate token budget', async () => {
       const moduleA = {
         name: 'moduleA',
         version: '1.0.0',
@@ -150,17 +150,24 @@ describe('Core Systems', () => {
     });
 
     it('should validate and load config', () => {
-      configManager.registerSchema('test', ConfigSchemas.graphics.shape, ConfigSchemas.graphics.parse({}));
+      configManager.registerSchema('test', ConfigSchemas.graphics, {});
       
-      configManager.load('test', { resolution: { width: 800, height: 600 } });
+          configManager.load('test', { 
+            resolution: { width: 800, height: 600, pixelRatio: 1 },
+            rendering: { antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', backgroundColor: 0x0a0a0f },
+            layers: { background: 0, midground: 100, foreground: 200, effects: 300, ui: 1000 },
+            parallax: { enabled: true, layers: 5, baseSpeed: 0.1 },
+            postProcessing: { enabled: true, bloom: true, vignette: true, colorGrading: true, crtEffect: false },
+            particles: { maxParticles: 10000, useGPU: true }
+          });
       
-      const config = configManager.get('test');
-      expect(config.resolution.width).toBe(800);
-      expect(config.resolution.height).toBe(600);
-    });
+          const config = configManager.get('test');
+          expect(config.resolution.width).toBe(800);
+          expect(config.resolution.height).toBe(600);
+        });
 
     it('should reject invalid config', () => {
-      configManager.registerSchema('test', ConfigSchemas.graphics.shape, ConfigSchemas.graphics.parse({}));
+      configManager.registerSchema('test', ConfigSchemas.graphics, {});
       
       expect(() => {
         configManager.load('test', { resolution: { width: 'invalid' } });
@@ -168,15 +175,22 @@ describe('Core Systems', () => {
     });
 
     it('should patch config', () => {
-      configManager.registerSchema('test', ConfigSchemas.graphics.shape, ConfigSchemas.graphics.parse({}));
-      configManager.load('test', { resolution: { width: 800, height: 600 } });
+      configManager.registerSchema('test', ConfigSchemas.graphics, {});
+          configManager.load('test', { 
+            resolution: { width: 800, height: 600, pixelRatio: 1 },
+            rendering: { antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', backgroundColor: 0x0a0a0f },
+            layers: { background: 0, midground: 100, foreground: 200, effects: 300, ui: 1000 },
+            parallax: { enabled: true, layers: 5, baseSpeed: 0.1 },
+            postProcessing: { enabled: true, bloom: true, vignette: true, colorGrading: true, crtEffect: false },
+            particles: { maxParticles: 10000, useGPU: true }
+          });
       
-      configManager.patch('test', { resolution: { width: 1024 } });
+          configManager.patch('test', { resolution: { width: 1024 } });
       
-      const config = configManager.get('test');
-      expect(config.resolution.width).toBe(1024);
-      expect(config.resolution.height).toBe(600);
-    });
+          const config = configManager.get('test');
+          expect(config.resolution.width).toBe(1024);
+          expect(config.resolution.height).toBe(600);
+        });
   });
 
   describe('DeterministicRNG', () => {
@@ -270,13 +284,5 @@ describe('Core Systems', () => {
       const mid = ColorUtils.lerpColor(0x000000, 0xFFFFFF, 0.5);
       expect(mid).toBe(0x808080);
     });
-  });
-});
-
-describe('Gameplay Systems Integration', () => {
-  it('should have all required modules defined', () => {
-    // This test ensures all module files exist and export correctly
-    // Actual integration tests would run in the browser context
-    expect(true).toBe(true);
   });
 });

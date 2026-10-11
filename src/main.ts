@@ -11,7 +11,7 @@
 import { GameApplication } from '@core/GameApplication';
 import { ModuleRegistry } from '@core/ModuleRegistry';
 import { EventBus } from '@core/EventBus';
-import { ConfigManager } from '@core/ConfigManager';
+import { ConfigManager, ConfigSchemas } from '@core/ConfigManager';
 import { AssetManager } from '@engine/AssetManager';
 import { RenderSystem } from '@graphics/RenderSystem';
 import { InputSystem } from '@engine/InputSystem';
@@ -48,12 +48,18 @@ async function main(): Promise<void> {
     
     // Create core infrastructure
     const eventBus = new EventBus();
-    const configManager = new ConfigManager({
-      graphics: graphicsConfig,
-      audio: audioConfig,
-      gameplay: gameplayConfig,
-      ai: aiConfig
-    });
+    const configManager = new ConfigManager(eventBus);
+    
+    // Register schemas and load configs
+    configManager.registerSchema('graphics', ConfigSchemas.graphics, {});
+    configManager.registerSchema('audio', ConfigSchemas.audio, {});
+    configManager.registerSchema('gameplay', ConfigSchemas.gameplay, {});
+    configManager.registerSchema('ai', ConfigSchemas.ai, {});
+    
+    configManager.load('graphics', graphicsConfig);
+    configManager.load('audio', audioConfig);
+    configManager.load('gameplay', gameplayConfig);
+    configManager.load('ai', aiConfig);
     
     // Create module registry (for RLM state management)
     const moduleRegistry = new ModuleRegistry(eventBus);

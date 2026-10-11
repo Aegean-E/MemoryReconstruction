@@ -30,7 +30,9 @@ export class ConfigManager {
    */
   registerSchema<T>(name: string, schema: z.ZodSchema<T>, defaultConfig: T): void {
     this.schemas.set(name, schema);
-    this.set(name, defaultConfig);
+    // Store default config without validation to allow partial defaults
+    this.configs.set(name, defaultConfig);
+    this.eventBus.emit('config:changed', { name, config: defaultConfig });
   }
 
   /**
@@ -96,11 +98,30 @@ export class ConfigManager {
   }
 
   /**
+   * Deep merge helper for nested objects
+   */
+  private deepMerge(target: any, source: any): any {
+    const output = { ...target };
+    for (const key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        const sourceVal = source[key];
+        const targetVal = target?.[key];
+        if (sourceVal && typeof sourceVal === 'object' && !Array.isArray(sourceVal)) {
+          output[key] = this.deepMerge(targetVal ?? {}, sourceVal);
+        } else {
+          output[key] = sourceVal;
+        }
+      }
+    }
+    return output;
+  }
+
+  /**
    * Update partial configuration
    */
   patch<T extends Record<string, any>>(name: string, patch: Partial<T>): void {
     const current = this.get<T>(name);
-    this.set(name, { ...current, ...patch });
+    this.set(name, this.deepMerge(current, patch));
   }
 
   /**

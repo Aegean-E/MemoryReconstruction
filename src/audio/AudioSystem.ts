@@ -1,14 +1,15 @@
 /**
  * Audio System - Adaptive audio with spatial support
- * 
+ *
  * Implements vertical layering for adaptive music,
  * spatial audio for SFX, and high-quality playback.
  */
 
-import { EventBus, GameEvents } from '@core/EventBus';
-import { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
-import { ConfigManager, AudioConfig } from '@core/ConfigManager';
-import { AssetManager } from '@engine/AssetManager';
+import type { EventBus } from '@core/EventBus';
+import { GameEvents } from '@core/EventBus';
+import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
+import type { AudioConfig } from '@core/ConfigManager';
+import type { AssetManager } from '@engine/AssetManager';
 
 export interface AudioLayer {
   name: string;
@@ -36,30 +37,30 @@ export class AudioSystem implements IGameModule {
 
   private eventBus: EventBus;
   private config: AudioConfig;
-    private assetManager!: AssetManager;
-  
+  private assetManager!: AssetManager;
+
   // Web Audio API
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private musicGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
   private voiceGain: GainNode | null = null;
-  
+
   // Music layers (vertical layering)
   private musicLayers = new Map<string, AudioLayer>();
   private currentMusicTheme = '';
   private targetIntensity = 0;
   private currentIntensity = 0;
   private crossfadeDuration = 2.0;
-  
+
   // SFX
   private sfxPool: AudioBufferSourceNode[] = [];
   private maxSfxChannels = 32;
-  
+
   // Spatial audio
   private spatialSounds = new Map<string, SpatialSound>();
   private listenerPosition = { x: 0, y: 0, z: 0 };
-  
+
   // State
   private muted = false;
   private suspended = false;
@@ -71,46 +72,46 @@ export class AudioSystem implements IGameModule {
 
   async initialize(context: ModuleContext): Promise<void> {
     this.assetManager = context.sharedState.get('assetManager');
-    
+
     // Create audio context
     this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-      sampleRate: this.config.sampleRate
+      sampleRate: this.config.sampleRate,
     });
-    
+
     // Create gain nodes
     this.masterGain = this.audioContext.createGain();
     this.masterGain.gain.value = this.config.masterVolume;
     this.masterGain.connect(this.audioContext.destination);
-    
+
     this.musicGain = this.audioContext.createGain();
     this.musicGain.gain.value = this.config.musicVolume;
     this.musicGain.connect(this.masterGain);
-    
+
     this.sfxGain = this.audioContext.createGain();
     this.sfxGain.gain.value = this.config.sfxVolume;
     this.sfxGain.connect(this.masterGain);
-    
+
     this.voiceGain = this.audioContext.createGain();
     this.voiceGain.gain.value = this.config.voiceVolume;
     this.voiceGain.connect(this.masterGain);
-    
+
     // Setup listener for spatial audio
     if (this.config.spatialAudio.enabled) {
       this.setupListener();
     }
-    
+
     // Setup event listeners
     this.setupEventListeners();
-    
+
     // Handle auto-suspend/resume
     this.setupAutoResume();
-    
+
     this.eventBus.emit('audioSystem:ready', {});
   }
 
   private setupListener(): void {
     if (!this.audioContext) return;
-    
+
     const listener = this.audioContext.listener;
     listener.positionX.value = this.listenerPosition.x;
     listener.positionY.value = this.listenerPosition.y;
@@ -125,7 +126,7 @@ export class AudioSystem implements IGameModule {
       document.removeEventListener('click', resume);
       document.removeEventListener('keydown', resume);
     };
-    
+
     document.addEventListener('click', resume);
     document.addEventListener('keydown', resume);
   }
@@ -145,30 +146,30 @@ export class AudioSystem implements IGameModule {
   /**
    * Play adaptive music with vertical layering
    */
-  async playMusic(data: { 
-    theme: string; 
-    intensity?: number; 
+  async playMusic(data: {
+    theme: string;
+    intensity?: number;
     crossfade?: number;
     layers?: string[];
   }): Promise<void> {
     if (!this.audioContext || !this.musicGain) return;
-    
+
     // Stop current music if different theme
     if (this.currentMusicTheme && this.currentMusicTheme !== data.theme) {
       await this.stopMusic({ crossfade: data.crossfade ?? this.crossfadeDuration });
     }
-    
+
     this.currentMusicTheme = data.theme;
     this.targetIntensity = data.intensity ?? 1.0;
     this.crossfadeDuration = data.crossfade ?? this.config.adaptiveMusic.crossfadeDuration;
-    
+
     // Load and start layers
     const layers = data.layers ?? this.getDefaultLayers(data.theme);
-    
+
     for (const layerName of layers) {
       await this.startMusicLayer(layerName);
     }
-    
+
     // Update intensity
     this.updateMusicIntensity();
   }
@@ -180,27 +181,27 @@ export class AudioSystem implements IGameModule {
       combat: ['ambient', 'melody', 'percussion', 'intensity'],
       boss: ['ambient', 'melody', 'percussion', 'intensity', 'choir'],
       menu: ['ambient', 'melody'],
-      victory: ['fanfare', 'ambient']
+      victory: ['fanfare', 'ambient'],
     };
     return themes[theme] ?? ['ambient', 'melody'];
   }
 
   private async startMusicLayer(layerName: string): Promise<void> {
     if (!this.audioContext || !this.musicGain) return;
-    
+
     const buffer = await this.loadAudioBuffer(`music/${this.currentMusicTheme}/${layerName}`);
     if (!buffer) return;
-    
+
     const layerGain = this.audioContext.createGain();
     layerGain.gain.value = 0;
     layerGain.connect(this.musicGain);
-    
+
     const source = this.audioContext.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
     source.connect(layerGain);
     source.start(0);
-    
+
     const layer: AudioLayer = {
       name: layerName,
       gainNode: layerGain,
@@ -208,9 +209,9 @@ export class AudioSystem implements IGameModule {
       buffer,
       volume: this.getLayerBaseVolume(layerName),
       loop: true,
-      playing: true
+      playing: true,
     };
-    
+
     this.musicLayers.set(layerName, layer);
   }
 
@@ -221,31 +222,31 @@ export class AudioSystem implements IGameModule {
       percussion: 0.5,
       intensity: 0.7,
       choir: 0.3,
-      fanfare: 0.8
+      fanfare: 0.8,
     };
     return volumes[layerName] ?? 0.5;
   }
 
   private updateMusicIntensity(): void {
     if (!this.audioContext) return;
-    
+
     // Smooth intensity transition
     const delta = (this.targetIntensity - this.currentIntensity) * 0.02;
     this.currentIntensity += delta;
-    
+
     // Update layer volumes based on intensity
     for (const [name, layer] of this.musicLayers) {
       if (!layer.playing) continue;
-      
+
       let targetVolume = layer.volume;
-      
+
       // Intensity-reactive layers
       if (name === 'intensity' || name === 'percussion') {
         targetVolume *= this.currentIntensity;
       } else if (name === 'ambient') {
-        targetVolume *= (1 - this.currentIntensity * 0.3);
+        targetVolume *= 1 - this.currentIntensity * 0.3;
       }
-      
+
       // Smooth volume change
       const currentVol = layer.gainNode.gain.value;
       layer.gainNode.gain.value += (targetVolume - currentVol) * 0.05;
@@ -254,19 +255,19 @@ export class AudioSystem implements IGameModule {
 
   async stopMusic(data: { crossfade?: number } = {}): Promise<void> {
     const crossfade = data.crossfade ?? this.crossfadeDuration;
-    
+
     for (const [name, layer] of this.musicLayers) {
       if (!layer.playing) continue;
-      
+
       layer.playing = false;
-      
+
       // Fade out
       const startVol = layer.gainNode.gain.value;
       const startTime = this.audioContext!.currentTime;
-      
+
       layer.gainNode.gain.setValueAtTime(startVol, startTime);
       layer.gainNode.gain.linearRampToValueAtTime(0, startTime + crossfade);
-      
+
       // Stop after fade
       setTimeout(() => {
         layer.source?.stop();
@@ -275,7 +276,7 @@ export class AudioSystem implements IGameModule {
         this.musicLayers.delete(name);
       }, crossfade * 1000);
     }
-    
+
     this.currentMusicTheme = '';
     this.targetIntensity = 0;
   }
@@ -286,22 +287,22 @@ export class AudioSystem implements IGameModule {
 
   // SFX System
 
-  async playSfx(data: { 
-    name: string; 
-    volume?: number; 
-    pitch?: number; 
+  async playSfx(data: {
+    name: string;
+    volume?: number;
+    pitch?: number;
     loop?: boolean;
     spatial?: boolean;
     position?: { x: number; y: number; z: number };
   }): Promise<void> {
     if (!this.audioContext || !this.sfxGain) return;
-    
+
     const buffer = await this.loadAudioBuffer(`sfx/${data.name}`);
     if (!buffer) {
       console.warn(`[AudioSystem] SFX not found: ${data.name}`);
       return;
     }
-    
+
     if (data.spatial && this.config.spatialAudio.enabled) {
       this.playSpatialSfx(buffer, data);
     } else {
@@ -311,20 +312,20 @@ export class AudioSystem implements IGameModule {
 
   private playRegularSfx(buffer: AudioBuffer, data: any): void {
     if (!this.audioContext || !this.sfxGain) return;
-    
+
     // Get or create source
     let source = this.sfxPool.pop() || this.audioContext.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.value = data.pitch ?? 1;
     source.loop = data.loop ?? false;
-    
+
     const gain = this.audioContext.createGain();
     gain.gain.value = (data.volume ?? 1) * this.config.sfxVolume;
     gain.connect(this.sfxGain);
-    
+
     source.connect(gain);
     source.start(0);
-    
+
     // Return to pool when done
     source.onended = () => {
       source.disconnect();
@@ -337,11 +338,11 @@ export class AudioSystem implements IGameModule {
 
   private playSpatialSfx(buffer: AudioBuffer, data: any): void {
     if (!this.audioContext || !this.sfxGain) return;
-    
+
     const source = this.audioContext.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.value = data.pitch ?? 1;
-    
+
     const panner = this.audioContext.createPanner();
     panner.panningModel = 'HRTF';
     panner.distanceModel = 'exponential';
@@ -351,18 +352,18 @@ export class AudioSystem implements IGameModule {
     panner.coneInnerAngle = 360;
     panner.coneOuterAngle = 360;
     panner.coneOuterGain = 0;
-    
+
     const position = data.position ?? { x: 0, y: 0, z: 0 };
     panner.positionX.value = position.x;
     panner.positionY.value = position.y;
     panner.positionZ.value = position.z;
-    
+
     const gain = this.audioContext.createGain();
     gain.gain.value = (data.volume ?? 1) * this.config.sfxVolume;
-    
+
     source.connect(panner).connect(gain).connect(this.sfxGain);
     source.start(0);
-    
+
     // Cleanup
     source.onended = () => {
       source.disconnect();
@@ -371,42 +372,42 @@ export class AudioSystem implements IGameModule {
     };
   }
 
-  async playSpatial(data: { 
-    id: string; 
-    name: string; 
+  async playSpatial(data: {
+    id: string;
+    name: string;
     position: { x: number; y: number; z: number };
     volume?: number;
     loop?: boolean;
   }): Promise<void> {
     if (!this.audioContext || !this.sfxGain) return;
-    
+
     const buffer = await this.loadAudioBuffer(`sfx/${data.name}`);
     if (!buffer) return;
-    
+
     const source = this.audioContext.createBufferSource();
     source.buffer = buffer;
     source.loop = data.loop ?? false;
-    
+
     const panner = this.audioContext.createPanner();
     panner.panningModel = 'HRTF';
     panner.distanceModel = 'exponential';
     panner.rolloffFactor = this.config.spatialAudio.rolloffFactor;
     panner.maxDistance = this.config.spatialAudio.maxDistance;
-    
+
     const gain = this.audioContext.createGain();
     gain.gain.value = (data.volume ?? 1) * this.config.sfxVolume;
-    
+
     source.connect(panner).connect(gain).connect(this.sfxGain);
     source.start(0);
-    
+
     const spatialSound: SpatialSound = {
       id: data.id,
       source,
       panner,
       gain,
-      position: data.position
+      position: data.position,
     };
-    
+
     this.spatialSounds.set(data.id, spatialSound);
     this.updateSpatialPosition(data.id, data.position);
   }
@@ -434,10 +435,10 @@ export class AudioSystem implements IGameModule {
 
   private updateListener(data: { x: number; y: number }): void {
     if (!this.audioContext) return;
-    
+
     this.listenerPosition.x = data.x;
     this.listenerPosition.y = data.y;
-    
+
     const listener = this.audioContext.listener;
     listener.positionX.value = data.x;
     listener.positionY.value = data.y;
@@ -447,7 +448,7 @@ export class AudioSystem implements IGameModule {
 
   setVolume(data: { type: 'master' | 'music' | 'sfx' | 'voice'; volume: number }): void {
     const volume = Math.max(0, Math.min(1, data.volume));
-    
+
     switch (data.type) {
       case 'master':
         this.config.masterVolume = volume;
@@ -479,13 +480,13 @@ export class AudioSystem implements IGameModule {
 
   private async loadAudioBuffer(path: string): Promise<AudioBuffer | null> {
     if (!this.audioContext) return null;
-    
+
     // Check cache first
     const cached = this.assetManager.get(path);
     if (cached instanceof AudioBuffer) return cached;
-    
+
     try {
-      const arrayBuffer = this.assetManager.get(path) as ArrayBuffer;
+      const arrayBuffer = this.assetManager.get(path)!;
       if (!arrayBuffer) {
         // Try to load from network
         const response = await fetch(`/assets/audio/${path}.ogg`);
@@ -493,7 +494,7 @@ export class AudioSystem implements IGameModule {
         const buffer = await response.arrayBuffer();
         return this.decodeAudioData(buffer);
       }
-      return this.decodeAudioData(arrayBuffer);
+      return this.decodeAudioData(arrayBuffer as ArrayBuffer);
     } catch (err) {
       console.error(`[AudioSystem] Failed to load audio: ${path}`, err);
       return null;
@@ -502,11 +503,7 @@ export class AudioSystem implements IGameModule {
 
   private decodeAudioData(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
     return new Promise((resolve, reject) => {
-      this.audioContext!.decodeAudioData(
-        arrayBuffer.slice(0),
-        resolve,
-        reject
-      );
+      this.audioContext!.decodeAudioData(arrayBuffer.slice(0), resolve, reject);
     });
   }
 
@@ -520,7 +517,7 @@ export class AudioSystem implements IGameModule {
     this.suspended = false;
   }
 
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     this.updateMusicIntensity();
   }
 
@@ -532,7 +529,7 @@ export class AudioSystem implements IGameModule {
       layer.gainNode.disconnect();
     }
     this.musicLayers.clear();
-    
+
     for (const sound of this.spatialSounds.values()) {
       sound.source.stop();
       sound.source.disconnect();
@@ -540,7 +537,7 @@ export class AudioSystem implements IGameModule {
       sound.gain.disconnect();
     }
     this.spatialSounds.clear();
-    
+
     // Close audio context
     await this.audioContext?.close();
     this.audioContext = null;
@@ -557,10 +554,11 @@ export class AudioSystem implements IGameModule {
         currentIntensity: this.currentIntensity,
         muted: this.muted,
         musicLayers: Array.from(this.musicLayers.entries()).map(([name, layer]) => [
-          name, { name, volume: layer.volume, playing: layer.playing }
-        ])
+          name,
+          { name, volume: layer.volume, playing: layer.playing },
+        ]),
       },
-      checksum: 'audio'
+      checksum: 'audio',
     };
   }
 
@@ -568,7 +566,8 @@ export class AudioSystem implements IGameModule {
     if (state.data.config) this.config = { ...this.config, ...state.data.config };
     if (state.data.currentMusicTheme) this.currentMusicTheme = state.data.currentMusicTheme;
     if (state.data.targetIntensity !== undefined) this.targetIntensity = state.data.targetIntensity;
-    if (state.data.currentIntensity !== undefined) this.currentIntensity = state.data.currentIntensity;
+    if (state.data.currentIntensity !== undefined)
+      this.currentIntensity = state.data.currentIntensity;
     if (state.data.muted !== undefined) this.setMuted(state.data.muted);
   }
 
@@ -580,7 +579,7 @@ export class AudioSystem implements IGameModule {
       intensity: this.currentIntensity,
       targetIntensity: this.targetIntensity,
       spatialSounds: this.spatialSounds.size,
-      contextState: this.audioContext?.state
+      contextState: this.audioContext?.state,
     };
   }
 }

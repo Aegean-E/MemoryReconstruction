@@ -1,19 +1,20 @@
 /**
  * Render System - 2.5D Graphics Engine
- * 
+ *
  * Implements layered rendering with parallax, dynamic lighting,
  * particle systems, and post-processing for human-appealing visuals.
- * 
+ *
  * Uses PixiJS v8 for WebGL/WebGPU rendering.
  */
 
 import * as PIXI from 'pixi.js';
 import { BloomFilter } from '@pixi/filter-bloom';
 import { ColorMatrixFilter } from '@pixi/filter-color-matrix';
-import { EventBus, GameEvents } from '@core/EventBus';
-import { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
-import { ConfigManager, GraphicsConfig } from '@core/ConfigManager';
-import { AssetManager } from '@engine/AssetManager';
+import type { EventBus } from '@core/EventBus';
+import { GameEvents } from '@core/EventBus';
+import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
+import type { GraphicsConfig } from '@core/ConfigManager';
+import type { AssetManager } from '@engine/AssetManager';
 
 export interface LayerConfig {
   name: string;
@@ -38,36 +39,46 @@ export class RenderSystem implements IGameModule {
 
   private eventBus: EventBus;
   private config: GraphicsConfig;
-    private assetManager!: AssetManager;
-  
+  private assetManager!: AssetManager;
+
   // PixiJS Application
   private app: PIXI.Application | null = null;
-  
+
   // Layer containers (back to front)
   private layers = new Map<string, PIXI.Container>();
   private layerOrder: string[] = ['background', 'midground', 'foreground', 'effects', 'ui'];
-  
+
   // Camera
-  private camera = { x: 0, y: 0, zoom: 1, rotation: 0, shake: { x: 0, y: 0, intensity: 0, time: 0 } };
-  
+  private camera = {
+    x: 0,
+    y: 0,
+    zoom: 1,
+    rotation: 0,
+    shake: { x: 0, y: 0, intensity: 0, time: 0 },
+  };
+
   // Parallax backgrounds
-  private parallaxLayers: Array<{ container: PIXI.Container; factor: number; textures: PIXI.Texture[] }> = [];
-  
+  private parallaxLayers: Array<{
+    container: PIXI.Container;
+    factor: number;
+    textures: PIXI.Texture[];
+  }> = [];
+
   // Lighting
   private lightContainer: PIXI.Container | null = null;
   private lights = new Map<string, LightSource>();
   private ambientLight = { color: 0xffffff, intensity: 0.3 };
-  
+
   // Particles
   private particleContainer: PIXI.Container | null = null;
   private particlePools = new Map<string, ParticlePool>();
-  
+
   // Post-processing
   private postProcessEnabled = true;
-  private bloomFilter: PIXI.filters.BloomFilter | null = null;
-  private vignetteFilter: PIXI.filters.ColorMatrixFilter | null = null;
-  private colorGradingFilter: PIXI.filters.ColorMatrixFilter | null = null;
-  
+  private bloomFilter: BloomFilter | null = null;
+  private vignetteFilter: ColorMatrixFilter | null = null;
+  private colorGradingFilter: ColorMatrixFilter | null = null;
+
   // Stats
   private stats: RenderStats = { fps: 0, drawCalls: 0, triangles: 0, textures: 0, particles: 0 };
   private lastStatsTime = 0;
@@ -80,7 +91,7 @@ export class RenderSystem implements IGameModule {
 
   async initialize(context: ModuleContext): Promise<void> {
     this.assetManager = context.sharedState.get('assetManager');
-    
+
     // Create PixiJS application
     this.app = new PIXI.Application();
     await this.app.init({
@@ -92,7 +103,7 @@ export class RenderSystem implements IGameModule {
       preserveDrawingBuffer: this.config.rendering.preserveDrawingBuffer,
       powerPreference: this.config.rendering.powerPreference,
       backgroundColor: this.config.rendering.backgroundColor,
-      backgroundAlpha: 1
+      backgroundAlpha: 1,
     });
 
     // Add canvas to DOM
@@ -105,13 +116,13 @@ export class RenderSystem implements IGameModule {
 
     // Setup layers
     this.createLayers();
-    
+
     // Setup lighting
     this.setupLighting();
-    
+
     // Setup particles
     this.setupParticles();
-    
+
     // Setup post-processing
     if (this.config.postProcessing.enabled) {
       this.setupPostProcessing();
@@ -123,33 +134,33 @@ export class RenderSystem implements IGameModule {
 
     // Start render loop
     this.app.ticker.add(this.render, this);
-    
+
     // Event listeners
     this.setupEventListeners();
-    
+
     this.eventBus.emit('renderSystem:ready', { app: this.app });
   }
 
   private createLayers(): void {
     if (!this.app) return;
-    
+
     const stage = this.app.stage;
-    
+
     for (const layerName of this.layerOrder) {
       const layerConfig = this.getLayerConfig(layerName);
       const container = new PIXI.Container();
       container.name = layerName;
       container.zIndex = layerConfig.depth;
       container.visible = layerConfig.visible;
-      
+
       // Enable culling for performance
       container.cullable = true;
       container.cullArea = new PIXI.Rectangle(0, 0, this.app.screen.width, this.app.screen.height);
-      
+
       this.layers.set(layerName, container);
       stage.addChild(container);
     }
-    
+
     // Sort children by zIndex
     stage.sortChildren();
   }
@@ -160,32 +171,32 @@ export class RenderSystem implements IGameModule {
       midground: this.config.layers.midground,
       foreground: this.config.layers.foreground,
       effects: this.config.layers.effects,
-      ui: this.config.layers.ui
+      ui: this.config.layers.ui,
     };
-    
+
     const parallaxFactors = {
       background: 0.1,
       midground: 0.3,
       foreground: 0.6,
       effects: 0.8,
-      ui: 0
+      ui: 0,
     };
-    
+
     return {
       name,
       depth: depths[name as keyof typeof depths] ?? 0,
       parallaxFactor: parallaxFactors[name as keyof typeof parallaxFactors] ?? 0,
-      visible: true
+      visible: true,
     };
   }
 
   private setupLighting(): void {
     if (!this.app) return;
-    
+
     this.lightContainer = new PIXI.Container();
     this.lightContainer.name = 'lights';
     this.layers.get('effects')?.addChild(this.lightContainer);
-    
+
     // Add ambient light as a base layer
     const ambient = new PIXI.Graphics();
     ambient.rect(0, 0, this.app.screen.width, this.app.screen.height);
@@ -195,7 +206,7 @@ export class RenderSystem implements IGameModule {
 
   private setupParticles(): void {
     if (!this.app) return;
-    
+
     this.particleContainer = new PIXI.Container();
     this.particleContainer.name = 'particles';
     this.layers.get('effects')?.addChild(this.particleContainer);
@@ -203,73 +214,53 @@ export class RenderSystem implements IGameModule {
 
   private setupPostProcessing(): void {
     if (!this.app) return;
-    
-    const filters: PIXI.Filter[] = [];
-    
+
+    const filters: any[] = [];
+
     if (this.config.postProcessing.bloom) {
       this.bloomFilter = new BloomFilter({
         threshold: 0.8,
         bloomScale: 1.5,
         brightness: 1.2,
         blur: 4,
-        quality: 0.5
-      });
+        quality: 0.5,
+      } as any);
       filters.push(this.bloomFilter);
     }
-    
+
     if (this.config.postProcessing.vignette) {
       this.vignetteFilter = new ColorMatrixFilter();
       this.applyVignette(this.vignetteFilter, 0.5);
       filters.push(this.vignetteFilter);
     }
-    
+
     if (this.config.postProcessing.colorGrading) {
       this.colorGradingFilter = new ColorMatrixFilter();
       this.applyColorGrading(this.colorGradingFilter, 'cinematic');
       filters.push(this.colorGradingFilter);
     }
-    
+
     if (filters.length > 0) {
-      this.layers.get('effects')!.filters = filters;
+      this.layers.get('effects')!.filters = filters as any;
     }
   }
 
-  private applyVignette(filter: ColorMatrixFilter, intensity: number): void {
+  private applyVignette(filter: ColorMatrixFilter, _intensity: number): void {
     // Vignette via color matrix (darken edges)
-    const matrix = [
-      1, 0, 0, 0, 0,
-      0, 1, 0, 0, 0,
-      0, 0, 1, 0, 0,
-      0, 0, 0, 1, 0
-    ];
-    filter._loadMatrix(matrix, true);
+    const matrix = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0];
+    (filter as any)._loadMatrix(matrix, true);
     // Note: True vignette needs a custom fragment shader
   }
 
   private applyColorGrading(filter: ColorMatrixFilter, preset: string): void {
     const presets: Record<string, number[]> = {
-      cinematic: [
-        1.1, 0, 0, 0, -0.05,
-        0, 1.05, 0, 0, -0.02,
-        0, 0, 1.1, 0, 0.03,
-        0, 0, 0, 1, 0
-      ],
-      noir: [
-        0.6, 0.6, 0.6, 0, 0,
-        0.3, 0.3, 0.3, 0, 0,
-        0.1, 0.1, 0.1, 0, 0,
-        0, 0, 0, 1, 0
-      ],
-      warm: [
-        1.2, 0, 0, 0, 0.05,
-        0, 1.1, 0, 0, 0.02,
-        0, 0, 0.9, 0, -0.03,
-        0, 0, 0, 1, 0
-      ]
+      cinematic: [1.1, 0, 0, 0, -0.05, 0, 1.05, 0, 0, -0.02, 0, 0, 1.1, 0, 0.03, 0, 0, 0, 1, 0],
+      noir: [0.6, 0.6, 0.6, 0, 0, 0.3, 0.3, 0.3, 0, 0, 0.1, 0.1, 0.1, 0, 0, 0, 0, 0, 1, 0],
+      warm: [1.2, 0, 0, 0, 0.05, 0, 1.1, 0, 0, 0.02, 0, 0, 0.9, 0, -0.03, 0, 0, 0, 1, 0],
     };
-    
+
     const matrix = presets[preset] ?? presets.cinematic;
-    filter._loadMatrix(matrix, true);
+    (filter as any)._loadMatrix(matrix, true);
   }
 
   private setupEventListeners(): void {
@@ -284,25 +275,25 @@ export class RenderSystem implements IGameModule {
 
   private render(): void {
     if (!this.app) return;
-    
+
     this.frameCount++;
     const now = performance.now();
-    
+
     // Update camera shake
     this.updateCameraShake();
-    
+
     // Apply camera transform
     this.applyCameraTransform();
-    
+
     // Update parallax
     this.updateParallax();
-    
+
     // Update lights
     this.updateLights();
-    
+
     // Update particles
     this.updateParticles();
-    
+
     // Update stats
     if (now - this.lastStatsTime >= 1000) {
       this.updateStats();
@@ -312,11 +303,11 @@ export class RenderSystem implements IGameModule {
 
   private updateCameraShake(): void {
     if (this.camera.shake.intensity > 0) {
-      this.camera.shake.time += 1/60;
+      this.camera.shake.time += 1 / 60;
       const decay = Math.exp(-this.camera.shake.time * 2);
       this.camera.shake.x = (Math.random() - 0.5) * this.camera.shake.intensity * decay;
       this.camera.shake.y = (Math.random() - 0.5) * this.camera.shake.intensity * decay;
-      
+
       if (decay < 0.01) {
         this.camera.shake.intensity = 0;
         this.camera.shake.x = 0;
@@ -327,23 +318,23 @@ export class RenderSystem implements IGameModule {
 
   private applyCameraTransform(): void {
     if (!this.app) return;
-    
+
     const stage = this.app.stage;
     const screen = this.app.screen;
-    
+
     // Calculate transform
     const cx = screen.width / 2;
     const cy = screen.height / 2;
-    
+
     stage.pivot.set(cx, cy);
     stage.position.set(cx, cy);
     stage.scale.set(this.camera.zoom);
     stage.rotation = this.camera.rotation;
-    
+
     // Apply shake
     stage.position.x += this.camera.shake.x;
     stage.position.y += this.camera.shake.y;
-    
+
     // Apply camera offset
     stage.position.x -= this.camera.x * this.camera.zoom;
     stage.position.y -= this.camera.y * this.camera.zoom;
@@ -372,10 +363,10 @@ export class RenderSystem implements IGameModule {
 
   private updateStats(): void {
     if (!this.app) return;
-    
+
     this.stats.fps = Math.round(this.app.ticker.FPS);
-    this.stats.drawCalls = this.app.renderer.renderPipes.batch?.['_drawCallCount'] ?? 0;
-    this.stats.triangles = this.app.renderer.renderPipes.batch?.['_triangleCount'] ?? 0;
+    this.stats.drawCalls = (this.app.renderer.renderPipes.batch as any)?._drawCallCount ?? 0;
+    this.stats.triangles = (this.app.renderer.renderPipes.batch as any)?._triangleCount ?? 0;
     this.stats.textures = this.app.renderer.textureGC?.count ?? 0;
   }
 
@@ -409,13 +400,23 @@ export class RenderSystem implements IGameModule {
     this.camera.shake.intensity = data.intensity;
     this.camera.shake.time = 0;
     if (data.duration) {
-      setTimeout(() => { this.camera.shake.intensity = 0; }, data.duration * 1000);
+      setTimeout(() => {
+        this.camera.shake.intensity = 0;
+      }, data.duration * 1000);
     }
   }
 
-  addLight(data: { id: string; x: number; y: number; radius: number; color: number; intensity: number; flicker?: boolean }): void {
+  addLight(data: {
+    id: string;
+    x: number;
+    y: number;
+    radius: number;
+    color: number;
+    intensity: number;
+    flicker?: boolean;
+  }): void {
     if (!this.lightContainer || !this.app) return;
-    
+
     const light = new LightSource(data, this.app);
     this.lights.set(data.id, light);
     this.lightContainer.addChild(light.graphics);
@@ -429,10 +430,18 @@ export class RenderSystem implements IGameModule {
     }
   }
 
-  playEffect(data: { type: string; x: number; y: number; scale?: number; rotation?: number; tint?: number; duration?: number }): void {
+  playEffect(data: {
+    type: string;
+    x: number;
+    y: number;
+    scale?: number;
+    rotation?: number;
+    tint?: number;
+    duration?: number;
+  }): void {
     const layer = this.layers.get('effects');
     if (!layer || !this.app) return;
-    
+
     // Create effect sprite (placeholder - would use actual effect textures)
     const gfx = new PIXI.Graphics();
     gfx.circle(0, 0, 20);
@@ -440,50 +449,54 @@ export class RenderSystem implements IGameModule {
     gfx.position.set(data.x, data.y);
     gfx.scale.set(data.scale ?? 1);
     gfx.rotation = data.rotation ?? 0;
-    
+
     layer.addChild(gfx);
-    
+
     // Animate
     const duration = data.duration ?? 0.5;
     const startTime = performance.now();
-    
+
     const animate = () => {
       const elapsed = (performance.now() - startTime) / 1000;
       const progress = elapsed / duration;
-      
+
       if (progress >= 1) {
         layer.removeChild(gfx);
         gfx.destroy();
         return;
       }
-      
+
       gfx.alpha = 0.8 * (1 - progress);
       gfx.scale.set((data.scale ?? 1) * (1 + progress));
       requestAnimationFrame(animate);
     };
-    
+
     animate();
   }
 
-  spawnParticles(data: { 
-    type: string; 
-    x: number; 
-    y: number; 
-    count?: number; 
-    color?: number; 
-    size?: number; 
-    speed?: number; 
+  spawnParticles(data: {
+    type: string;
+    x: number;
+    y: number;
+    count?: number;
+    color?: number;
+    size?: number;
+    speed?: number;
     lifetime?: number;
     gravity?: number;
   }): void {
     if (!this.particleContainer) return;
-    
+
     let pool = this.particlePools.get(data.type);
     if (!pool) {
-      pool = new ParticlePool(data.type, this.particleContainer, this.config.particles.maxParticles);
+      pool = new ParticlePool(
+        data.type,
+        this.particleContainer,
+        this.config.particles.maxParticles
+      );
       this.particlePools.set(data.type, pool);
     }
-    
+
     pool.emit({
       x: data.x,
       y: data.y,
@@ -492,18 +505,18 @@ export class RenderSystem implements IGameModule {
       size: data.size ?? 4,
       speed: data.speed ?? 100,
       lifetime: data.lifetime ?? 1,
-      gravity: data.gravity ?? 0
+      gravity: data.gravity ?? 0,
     });
   }
 
   resize(): void {
     if (!this.app) return;
-    
+
     const width = window.innerWidth;
     const height = window.innerHeight;
-    
+
     this.app.renderer.resize(width, height);
-    
+
     // Update layer culling areas
     for (const layer of this.layers.values()) {
       layer.cullArea = new PIXI.Rectangle(0, 0, width, height);
@@ -513,9 +526,9 @@ export class RenderSystem implements IGameModule {
   setPostProcessing(enabled: boolean): void {
     this.postProcessEnabled = enabled;
     if (this.layers.has('effects')) {
-      this.layers.get('effects')!.filters = enabled ? 
-        [this.bloomFilter, this.vignetteFilter, this.colorGradingFilter].filter(Boolean) as PIXI.Filter[] : 
-        null;
+      this.layers.get('effects')!.filters = enabled
+        ? ([this.bloomFilter, this.vignetteFilter, this.colorGradingFilter].filter(Boolean) as any)
+        : null;
     }
   }
 
@@ -548,20 +561,21 @@ export class RenderSystem implements IGameModule {
         camera: this.camera,
         ambientLight: this.ambientLight,
         lights: Array.from(this.lights.entries()).map(([id, light]) => [id, light.serialize()]),
-        postProcessEnabled: this.postProcessEnabled
+        postProcessEnabled: this.postProcessEnabled,
       },
-      checksum: 'render'
+      checksum: 'render',
     };
   }
 
   deserialize(state: ModuleState): void {
     if (state.data.camera) this.camera = { ...this.camera, ...state.data.camera };
     if (state.data.ambientLight) this.ambientLight = state.data.ambientLight;
-    if (state.data.postProcessEnabled !== undefined) this.setPostProcessing(state.data.postProcessEnabled);
+    if (state.data.postProcessEnabled !== undefined)
+      this.setPostProcessing(state.data.postProcessEnabled);
     // Lights would need re-creation
   }
 
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     // Render is handled by PixiJS ticker
   }
 }
@@ -584,22 +598,22 @@ class LightSource {
 
   private createLightGeometry(): void {
     const { x, y, radius, color, intensity } = this.data;
-    
+
     // Create radial gradient light
     // Using graphics for simplicity; production would use shaders
     this.graphics.circle(x, y, radius);
-    this.graphics.fill({ 
-      color, 
-      alpha: intensity * 0.5 
+    this.graphics.fill({
+      color,
+      alpha: intensity * 0.5,
     });
-    
+
     // Add glow effect
     this.graphics.circle(x, y, radius * 1.5);
-    this.graphics.fill({ 
-      color, 
-      alpha: intensity * 0.1 
+    this.graphics.fill({
+      color,
+      alpha: intensity * 0.1,
     });
-    
+
     this.graphics.blendMode = 'add';
   }
 
@@ -635,7 +649,7 @@ class ParticlePool {
     this.type = type;
     this.container = container;
     this.maxParticles = maxParticles;
-    
+
     // Pre-allocate
     for (let i = 0; i < maxParticles; i++) {
       const particle = new Particle();
@@ -645,13 +659,19 @@ class ParticlePool {
   }
 
   emit(config: {
-    x: number; y: number; count: number; color: number;
-    size: number; speed: number; lifetime: number; gravity: number;
+    x: number;
+    y: number;
+    count: number;
+    color: number;
+    size: number;
+    speed: number;
+    lifetime: number;
+    gravity: number;
   }): void {
     for (let i = 0; i < config.count && this.freeIndices.length > 0; i++) {
       const index = this.freeIndices.pop()!;
       const particle = this.particles[index];
-      
+
       particle.init(config);
       this.container.addChild(particle.graphics);
       this.activeCount++;
@@ -662,9 +682,9 @@ class ParticlePool {
     for (let i = 0; i < this.particles.length; i++) {
       const particle = this.particles[i];
       if (!particle.active) continue;
-      
-      particle.update(1/60);
-      
+
+      particle.update(1 / 60);
+
       if (particle.life <= 0) {
         this.container.removeChild(particle.graphics);
         particle.active = false;
@@ -689,20 +709,25 @@ class Particle {
   }
 
   init(config: {
-    x: number; y: number; color: number; size: number;
-    speed: number; lifetime: number; gravity: number;
+    x: number;
+    y: number;
+    color: number;
+    size: number;
+    speed: number;
+    lifetime: number;
+    gravity: number;
   }): void {
     this.graphics.clear();
     this.graphics.circle(0, 0, config.size);
     this.graphics.fill({ color: config.color });
     this.graphics.position.set(config.x, config.y);
     this.graphics.blendMode = 'add';
-    
+
     const angle = Math.random() * Math.PI * 2;
     const speed = config.speed * (0.5 + Math.random() * 0.5);
     this.velocity.x = Math.cos(angle) * speed;
     this.velocity.y = Math.sin(angle) * speed;
-    
+
     this.life = config.lifetime;
     this.maxLife = config.lifetime;
     this.gravity = config.gravity;
@@ -712,12 +737,12 @@ class Particle {
 
   update(deltaTime: number): void {
     if (!this.active) return;
-    
+
     this.life -= deltaTime;
     this.graphics.position.x += this.velocity.x * deltaTime;
     this.graphics.position.y += this.velocity.y * deltaTime;
     this.velocity.y += this.gravity * deltaTime;
-    
+
     // Fade out
     const progress = 1 - this.life / this.maxLife;
     this.graphics.alpha = 1 - progress;

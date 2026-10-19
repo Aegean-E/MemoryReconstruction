@@ -1,21 +1,16 @@
 /**
  * AI System - RLM Compatibility Layer and AI Testing Interface
- * 
+ *
  * Provides deterministic state management, serialization for RLM context,
  * and interfaces for AI agents to interact with the game.
  */
 
-import { EventBus, GameEvents } from '@core/EventBus';
-import { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
-import { ConfigManager, AIConfig } from '@core/ConfigManager';
-import { GameApplication } from '@core/GameApplication';
-import { ModuleRegistry } from '@core/ModuleRegistry';
-import { WorldSystem } from '@gameplay/WorldSystem';
-import { PlayerSystem } from '@gameplay/PlayerSystem';
-import { CombatSystem } from '@gameplay/CombatSystem';
-import { RenderSystem } from '@graphics/RenderSystem';
-import { AudioSystem } from '@audio/AudioSystem';
-import { InputSystem } from '@engine/InputSystem';
+import type { EventBus } from '@core/EventBus';
+import { GameEvents } from '@core/EventBus';
+import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
+import type { AIConfig } from '@core/ConfigManager';
+import type { GameApplication } from '@core/GameApplication';
+import type { ModuleRegistry } from '@core/ModuleRegistry';
 
 export interface RLMState {
   version: string;
@@ -92,23 +87,23 @@ export class AISystem implements IGameModule {
   private config: AIConfig;
   private gameApp: GameApplication | null = null;
   private moduleRegistry: ModuleRegistry | null = null;
-  
+
   // RLM State management
   private rlmEnabled = true;
-    private rlmTokenBudget = 50000;
+  private rlmTokenBudget = 50000;
   private snapshotInterval = 60; // frames
   private frameSinceSnapshot = 0;
   private stateHistory: RLMState[] = [];
   private maxHistorySize = 100;
-  
+
   // AI Agents
   private agents = new Map<string, AIAgent>();
   private activeAgent: string | null = null;
-  
+
   // Decision making
   private decisionInterval = 100; // ms
   private lastDecisionTime = 0;
-  
+
   // Observation buffer
   private observationBuffer: AIObservation | null = null;
 
@@ -116,14 +111,14 @@ export class AISystem implements IGameModule {
     this.eventBus = eventBus;
     this.config = config;
     this.rlmEnabled = config.rlm.enabled;
-      this.rlmTokenBudget = config.rlm.tokenBudget; // aikit:allow-secret
+    this.rlmTokenBudget = config.rlm.tokenBudget; // aikit:allow-secret
     this.snapshotInterval = config.rlm.snapshotInterval;
   }
 
   async initialize(context: ModuleContext): Promise<void> {
     this.gameApp = context.sharedState.get('gameApplication');
     this.moduleRegistry = context.sharedState.get('moduleRegistry');
-    
+
     // Event listeners
     this.eventBus.on('ai:registerAgent', (data: any) => this.registerAgent(data));
     this.eventBus.on('ai:unregisterAgent', (data: any) => this.unregisterAgent(data.id));
@@ -133,13 +128,18 @@ export class AISystem implements IGameModule {
     this.eventBus.on('ai:requestState', () => this.provideState());
     this.eventBus.on(GameEvents.RLM_STATE_SNAPSHOT, () => this.createSnapshot());
     this.eventBus.on(GameEvents.RLM_STATE_RESTORE, (data: any) => this.restoreState(data.state));
-    
+
     this.eventBus.emit('aiSystem:ready', { rlmEnabled: this.rlmEnabled });
   }
 
   // Agent Management
 
-  registerAgent(data: { id: string; name: string; type: 'player' | 'enemy' | 'observer'; config: any }): void {
+  registerAgent(data: {
+    id: string;
+    name: string;
+    type: 'player' | 'enemy' | 'observer';
+    config: any;
+  }): void {
     const agent: AIAgent = {
       id: data.id,
       name: data.name,
@@ -147,9 +147,9 @@ export class AISystem implements IGameModule {
       config: data.config,
       active: false,
       lastDecision: null,
-      decisionCount: 0
+      decisionCount: 0,
     };
-    
+
     this.agents.set(data.id, agent);
     this.eventBus.emit('ai:agentRegistered', { id: data.id, name: data.name });
   }
@@ -167,7 +167,7 @@ export class AISystem implements IGameModule {
         const prev = this.agents.get(this.activeAgent)!;
         prev.active = false;
       }
-      
+
       this.activeAgent = id;
       const agent = this.agents.get(id)!;
       agent.active = true;
@@ -188,14 +188,14 @@ export class AISystem implements IGameModule {
   private async requestDecision(context: AIDecisionContext): Promise<void> {
     const agent = this.getActiveAgent();
     if (!agent) return;
-    
+
     const now = Date.now();
     if (now - this.lastDecisionTime < this.decisionInterval) return;
     this.lastDecisionTime = now;
-    
+
     // Get decision from agent (would be implemented by specific AI)
     const decision = await this.getAgentDecision(agent, context);
-    
+
     if (decision) {
       agent.lastDecision = decision;
       agent.decisionCount++;
@@ -204,7 +204,10 @@ export class AISystem implements IGameModule {
     }
   }
 
-  private async getAgentDecision(agent: AIAgent, context: AIDecisionContext): Promise<AIAction | null> {
+  private async getAgentDecision(
+    agent: AIAgent,
+    context: AIDecisionContext
+  ): Promise<AIAction | null> {
     // This would be implemented by specific AI agents
     // For now, return a basic heuristic decision
     return this.heuristicDecision(context);
@@ -212,23 +215,23 @@ export class AISystem implements IGameModule {
 
   private heuristicDecision(context: AIDecisionContext): AIAction {
     const { player, world, input } = context;
-    
+
     // Find nearest enemy
     let nearestEnemy = null;
     let nearestDist = Infinity;
-    
+
     for (const entity of world.nearbyEntities) {
       if (entity.distance < nearestDist) {
         nearestDist = entity.distance;
         nearestEnemy = entity;
       }
     }
-    
+
     // Low health - heal or flee
     if (player.health / player.maxHealth < 0.3) {
       const healAbility = { type: 'ability' as const, params: { id: 'heal' }, priority: 10 };
       if (player.mana >= 20) return healAbility;
-      
+
       // Flee from nearest enemy
       if (nearestEnemy) {
         const dx = player.position.x - nearestEnemy.position.x;
@@ -237,22 +240,22 @@ export class AISystem implements IGameModule {
         if (dist > 0) {
           return {
             type: 'move',
-            params: { x: dx / dist * 200, y: dy / dist * 200 },
-            priority: 9
+            params: { x: (dx / dist) * 200, y: (dy / dist) * 200 },
+            priority: 9,
           };
         }
       }
     }
-    
+
     // Enemy in range - attack
     if (nearestEnemy && nearestDist < 50) {
       return {
         type: 'attack',
         params: { targetId: nearestEnemy.id },
-        priority: 8
+        priority: 8,
       };
     }
-    
+
     // Enemy in chase range - move toward
     if (nearestEnemy && nearestDist < 300) {
       const dx = nearestEnemy.position.x - player.position.x;
@@ -262,35 +265,38 @@ export class AISystem implements IGameModule {
         return {
           type: 'move',
           params: { x: dx / dist, y: dy / dist },
-          priority: 5
+          priority: 5,
         };
       }
     }
-    
+
     // Explore - move toward unexplored
     return {
       type: 'move',
-      params: { x: input.movement.x || (Math.random() - 0.5), y: input.movement.y || (Math.random() - 0.5) },
-      priority: 1
+      params: {
+        x: input.movement.x || Math.random() - 0.5,
+        y: input.movement.y || Math.random() - 0.5,
+      },
+      priority: 1,
     };
   }
 
   private executeDecision(decision: AIAction): void {
     switch (decision.type) {
       case 'move':
-              this.eventBus.emit(GameEvents.PLAYER_MOVE, decision.params as any);
+        this.eventBus.emit(GameEvents.PLAYER_MOVE, decision.params as any);
         break;
       case 'attack':
-              this.eventBus.emit(GameEvents.PLAYER_ATTACK, {});
+        this.eventBus.emit(GameEvents.PLAYER_ATTACK, {});
         break;
       case 'dash':
-              this.eventBus.emit('player:dash', {});
+        this.eventBus.emit('player:dash', {});
         break;
       case 'interact':
-              this.eventBus.emit('player:interact', {});
+        this.eventBus.emit('player:interact', {});
         break;
       case 'ability':
-              this.eventBus.emit('player:useAbility', decision.params as any);
+        this.eventBus.emit('player:useAbility', decision.params as any);
         break;
       case 'wait':
         // Do nothing
@@ -307,16 +313,14 @@ export class AISystem implements IGameModule {
   }
 
   private createObservation(): AIObservation {
-    const playerSystem = this.moduleRegistry?.get('playerSystem') as PlayerSystem;
-    const combatSystem = this.moduleRegistry?.get('combatSystem') as CombatSystem;
-    const worldSystem = this.moduleRegistry?.get('worldSystem') as WorldSystem;
-    const renderSystem = this.moduleRegistry?.get('renderSystem') as RenderSystem;
-    
+    const playerSystem = this.moduleRegistry?.get('playerSystem') as any;
+    const combatSystem = this.moduleRegistry?.get('combatSystem') as any;
+
     // Create compressed observation
     const player = playerSystem?.getState();
     const stats = playerSystem?.getStats();
     const entities = combatSystem?.getEntities();
-    
+
     // Player state vector (16 floats)
     const playerVector = new Float32Array(16);
     if (player && stats) {
@@ -337,17 +341,17 @@ export class AISystem implements IGameModule {
       playerVector[14] = stats.armor / 200;
       playerVector[15] = stats.level / 50;
     }
-    
+
     // Entity array (max 50 entities, 8 floats each = 400 floats)
     const maxEntities = 50;
     const entityVector = new Float32Array(maxEntities * 8);
     let entityCount = 0;
-    
+
     if (entities) {
-      for (const [id, entity] of entities) {
+      for (const [_id, entity] of entities) {
         if (entityCount >= maxEntities) break;
         if (!entity.state.alive) continue;
-        
+
         const base = entityCount * 8;
         entityVector[base] = entity.position.x / 1000;
         entityVector[base + 1] = entity.position.y / 1000;
@@ -360,10 +364,10 @@ export class AISystem implements IGameModule {
         entityCount++;
       }
     }
-    
+
     // Screen buffer placeholder (would be actual rendered frame)
     const screenBuffer = new Float32Array(64 * 64 * 3); // 64x64 RGB
-    
+
     return {
       screen: screenBuffer,
       entities: entityVector,
@@ -372,13 +376,27 @@ export class AISystem implements IGameModule {
         width: 64,
         height: 64,
         entityCount,
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     };
   }
 
   private getEntityTypeIndex(type: string): number {
-    const types = ['scavenger', 'guardian', 'memoryEcho', 'wildling', 'spirit', 'caveDweller', 'crystalGolem', 'shadow', 'crystalGuardian', 'prismEntity', 'voidWalker', 'forgotten', 'keeper'];
+    const types = [
+      'scavenger',
+      'guardian',
+      'memoryEcho',
+      'wildling',
+      'spirit',
+      'caveDweller',
+      'crystalGolem',
+      'shadow',
+      'crystalGuardian',
+      'prismEntity',
+      'voidWalker',
+      'forgotten',
+      'keeper',
+    ];
     return types.indexOf(type) + 1;
   }
 
@@ -386,14 +404,14 @@ export class AISystem implements IGameModule {
 
   private createSnapshot(): void {
     if (!this.rlmEnabled || !this.gameApp) return;
-    
+
     this.frameSinceSnapshot++;
     if (this.frameSinceSnapshot < this.snapshotInterval) return;
     this.frameSinceSnapshot = 0;
-    
+
     const gameState = this.gameApp.serialize();
     const moduleStates = this.moduleRegistry?.serializeAll() ?? {};
-    
+
     const snapshot: RLMState = {
       version: '1.0',
       timestamp: Date.now(),
@@ -401,32 +419,32 @@ export class AISystem implements IGameModule {
       frame: gameState.frameCount,
       playTime: gameState.playTime,
       modules: moduleStates,
-      checksum: this.computeChecksum(moduleStates)
+      checksum: this.computeChecksum(moduleStates),
     };
-    
+
     this.stateHistory.push(snapshot);
     if (this.stateHistory.length > this.maxHistorySize) {
       this.stateHistory.shift();
     }
-    
+
     this.eventBus.emit(GameEvents.RLM_STATE_SNAPSHOT + ':result', snapshot);
   }
 
   private restoreState(state: RLMState): void {
     if (!this.gameApp || !this.moduleRegistry) return;
-    
+
     this.gameApp.deserialize(state as any);
     this.moduleRegistry.deserializeAll(state.modules);
-    
+
     this.eventBus.emit('ai:stateRestored', { timestamp: state.timestamp });
   }
 
   private provideState(): void {
     if (!this.gameApp) return;
-    
+
     const gameState = this.gameApp.serialize();
     const moduleStates = this.moduleRegistry?.serializeAll() ?? {};
-    
+
     const fullState: RLMState = {
       version: '1.0',
       timestamp: Date.now(),
@@ -434,9 +452,9 @@ export class AISystem implements IGameModule {
       frame: gameState.frameCount,
       playTime: gameState.playTime,
       modules: moduleStates,
-      checksum: this.computeChecksum(moduleStates)
+      checksum: this.computeChecksum(moduleStates),
     };
-    
+
     this.eventBus.emit('ai:state', fullState);
   }
 
@@ -444,38 +462,38 @@ export class AISystem implements IGameModule {
     let hash = 0;
     const str = JSON.stringify(modules);
     for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = (hash << 5) - hash + str.charCodeAt(i);
       hash |= 0;
     }
     return hash.toString(16);
   }
 
-    private createRNG(seed: number): () => number {
-      let state = seed >>> 0;
-      return () => {
-        state = (state * 1664525 + 1013904223) >>> 0;
-        return state / 0x100000000;
-      };
-    }
+  private createRNG(seed: number): () => number {
+    let state = seed >>> 0;
+    return () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 0x100000000;
+    };
+  }
 
-    // Headless Simulation for Testing
+  // Headless Simulation for Testing
 
   async runHeadlessScenario(scenario: string, steps: number, seed: number): Promise<any> {
     if (!this.gameApp) throw new Error('Game not initialized');
-    
+
     // Set deterministic seed
     (this.gameApp as any).seed = seed;
     (this.gameApp as any).rng = this.createRNG(seed);
-    
+
     // Run headless
     const result = await this.gameApp.runHeadless(steps);
-    
+
     return {
       scenario,
       seed,
       steps,
       finalState: result,
-      metrics: this.collectMetrics(result)
+      metrics: this.collectMetrics(result),
     };
   }
 
@@ -484,14 +502,14 @@ export class AISystem implements IGameModule {
       frameCount: state.frameCount,
       playTime: state.playTime,
       tokenBudget: this.moduleRegistry?.getTotalTokenBudget() ?? 0, // aikit:allow-secret
-      moduleCount: this.moduleRegistry?.getAllMetadata().length ?? 0
+      moduleCount: this.moduleRegistry?.getAllMetadata().length ?? 0,
     };
   }
 
   // Token Budget Management
 
   getTokenBudget(): number {
-      return this.rlmTokenBudget;
+    return this.rlmTokenBudget;
   }
 
   getCurrentTokenUsage(): number {
@@ -499,7 +517,7 @@ export class AISystem implements IGameModule {
   }
 
   canAfford(tokens: number): boolean {
-      return this.getCurrentTokenUsage() + tokens <= this.rlmTokenBudget;
+    return this.getCurrentTokenUsage() + tokens <= this.rlmTokenBudget;
   }
 
   // State History for RLM
@@ -512,7 +530,7 @@ export class AISystem implements IGameModule {
     return this.stateHistory[this.stateHistory.length - 1] ?? null;
   }
 
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     // Periodic snapshot
     if (this.rlmEnabled && this.gameApp) {
       this.createSnapshot();
@@ -530,18 +548,18 @@ export class AISystem implements IGameModule {
       timestamp: Date.now(),
       data: {
         rlmEnabled: this.rlmEnabled,
-          tokenBudget: this.rlmTokenBudget, // aikit:allow-secret
+        tokenBudget: this.rlmTokenBudget, // aikit:allow-secret
         activeAgent: this.activeAgent,
         agents: Array.from(this.agents.entries()),
-        stateHistory: this.stateHistory.slice(-10) // Keep last 10
+        stateHistory: this.stateHistory.slice(-10), // Keep last 10
       },
-      checksum: 'ai'
+      checksum: 'ai',
     };
   }
 
   deserialize(state: ModuleState): void {
     if (state.data.rlmEnabled !== undefined) this.rlmEnabled = state.data.rlmEnabled;
-      if (state.data.tokenBudget) this.rlmTokenBudget = state.data.tokenBudget; // aikit:allow-secret
+    if (state.data.tokenBudget) this.rlmTokenBudget = state.data.tokenBudget; // aikit:allow-secret
     if (state.data.activeAgent) this.activeAgent = state.data.activeAgent;
     if (state.data.agents) this.agents = new Map(state.data.agents);
     if (state.data.stateHistory) this.stateHistory = state.data.stateHistory;

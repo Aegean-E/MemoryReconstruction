@@ -4,6 +4,45 @@
 
 ![Game Banner](assets/banner.png)
 
+## ⚡ 30-Second Cold-Start Quick Reference
+
+- **Runtime Prerequisites**: Node.js >= 18, npm >= 9
+- **Canonical Regression Shield Gate**:
+  ```bash
+  npm test
+  ```
+
+### 🛠️ AIKit Commands (run from the AIKit folder)
+| Role | Command |
+|---|---|
+| Status, task and gates | `python aikit.py status MemoryReconstruction` |
+| Phase 4: every gate | `python aikit.py check MemoryReconstruction` |
+| Repair memory and map, then check | `python aikit.py fix MemoryReconstruction` |
+| Resume an interrupted task | `python aikit.py resume MemoryReconstruction` |
+
+## 📦 What's Inside
+
+```text
+MemoryReconstruction/
+├── .aikit/                   <- this project's memory: record, ledger, decisions
+├── .gitignore                <- transient AIKit state excluded
+├── .prettierrc
+├── PROJECT_PRINCIPLES.md
+├── README.md
+├── assets/
+├── docs/
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── scripts/
+├── src/
+├── tests/
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+```
+
 ## Overview
 
 Memory Reconstruction is a 2.5D action-roguelike metroidvania where you play as a **Memory Walker** - a being capable of navigating the fragmented remains of a shattered world. Each run explores procedurally generated biomes, combats memory-corrupted entities, and collects **Memory Fragments** to reconstruct the world's true history.

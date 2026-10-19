@@ -150,47 +150,47 @@ describe('Core Systems', () => {
     });
 
     it('should validate and load config', () => {
-      configManager.registerSchema('test', ConfigSchemas.graphics, {});
-      
-          configManager.load('test', { 
-            resolution: { width: 800, height: 600, pixelRatio: 1 },
-            rendering: { antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', backgroundColor: 0x0a0a0f },
-            layers: { background: 0, midground: 100, foreground: 200, effects: 300, ui: 1000 },
-            parallax: { enabled: true, layers: 5, baseSpeed: 0.1 },
-            postProcessing: { enabled: true, bloom: true, vignette: true, colorGrading: true, crtEffect: false },
-            particles: { maxParticles: 10000, useGPU: true }
-          });
-      
-          const config = configManager.get('test');
-          expect(config.resolution.width).toBe(800);
-          expect(config.resolution.height).toBe(600);
-        });
+      configManager.registerSchema('test', ConfigSchemas.graphics, {} as any);
+
+      configManager.load('test', {
+        resolution: { width: 800, height: 600, pixelRatio: 1 },
+        rendering: { antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', backgroundColor: 0x0a0a0f },
+        layers: { background: 0, midground: 100, foreground: 200, effects: 300, ui: 1000 },
+        parallax: { enabled: true, layers: 5, baseSpeed: 0.1 },
+        postProcessing: { enabled: true, bloom: true, vignette: true, colorGrading: true, crtEffect: false },
+        particles: { maxParticles: 10000, useGPU: true }
+      });
+
+      const config = configManager.get<any>('test');
+      expect(config.resolution.width).toBe(800);
+      expect(config.resolution.height).toBe(600);
+    });
 
     it('should reject invalid config', () => {
-      configManager.registerSchema('test', ConfigSchemas.graphics, {});
-      
+      configManager.registerSchema('test', ConfigSchemas.graphics, {} as any);
+
       expect(() => {
         configManager.load('test', { resolution: { width: 'invalid' } });
       }).toThrow();
     });
 
     it('should patch config', () => {
-      configManager.registerSchema('test', ConfigSchemas.graphics, {});
-          configManager.load('test', { 
-            resolution: { width: 800, height: 600, pixelRatio: 1 },
-            rendering: { antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', backgroundColor: 0x0a0a0f },
-            layers: { background: 0, midground: 100, foreground: 200, effects: 300, ui: 1000 },
-            parallax: { enabled: true, layers: 5, baseSpeed: 0.1 },
-            postProcessing: { enabled: true, bloom: true, vignette: true, colorGrading: true, crtEffect: false },
-            particles: { maxParticles: 10000, useGPU: true }
-          });
-      
-          configManager.patch('test', { resolution: { width: 1024 } });
-      
-          const config = configManager.get('test');
-          expect(config.resolution.width).toBe(1024);
-          expect(config.resolution.height).toBe(600);
-        });
+      configManager.registerSchema('test', ConfigSchemas.graphics, {} as any);
+      configManager.load('test', {
+        resolution: { width: 800, height: 600, pixelRatio: 1 },
+        rendering: { antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', backgroundColor: 0x0a0a0f },
+        layers: { background: 0, midground: 100, foreground: 200, effects: 300, ui: 1000 },
+        parallax: { enabled: true, layers: 5, baseSpeed: 0.1 },
+        postProcessing: { enabled: true, bloom: true, vignette: true, colorGrading: true, crtEffect: false },
+        particles: { maxParticles: 10000, useGPU: true }
+      });
+
+      configManager.patch('test', { resolution: { width: 1024 } });
+
+      const config = configManager.get<any>('test');
+      expect(config.resolution.width).toBe(1024);
+      expect(config.resolution.height).toBe(600);
+    });
   });
 
   describe('DeterministicRNG', () => {

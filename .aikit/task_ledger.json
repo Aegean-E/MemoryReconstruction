@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "active_task": {
+    "task_id": "green-gates",
+    "last_phase": "phase 4",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792440482.1176922,
+    "completed_at": 1792440656.6548028
+  },
+  "checkpoints": [
+    {
+      "task_id": "integrate-aikit",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] attached the folder: .aikit memory (project.json, ledger, decisions, guidelines) written and registration verified; [2/2] run Phase 4 gates, record the checklist outcome, then commit only the memory and the ADR",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792438437.8121803,
+      "timestamp_str": "2026-10-19 22:33:57",
+      "impact_assessment": {
+        "why": "MemoryReconstruction sat in projects/ but had no .aikit/ memory, so no AIKit cockpit could see it: no ledger, no resume, no gates, no decisions record",
+        "benefits": "the project becomes a first-class AIKit project: registered in aikit list, cold-start resume, checkpoints, Phase 4 gates (npm test, lint, typecheck, build, hygiene, guidelines, secrets), project guidelines and ADRs",
+        "risks": "contract: attach owns only .aikit/ and .gitignore transient lines, and must leave PROJECT_PRINCIPLES.md and the game sources alone; dependency: none added, node and npm were already the project's own toolchain; concurrency: the user's uncommitted asset work stays untouched, no parallel writer to the fresh ledger; state: existing memory is never overwritten and the new gitignore lines cover only AIKit lock/bak/tmp files",
+        "mitigation": "explicit staging of .aikit/ and .gitignore only, never git add .; run aikit check before any commit; on gate failure leave the memory uncommitted and report instead of touching the user's in-flight files"
+      }
+    },
+    {
+      "task_id": "integrate-aikit",
+      "phase": "phase 5",
+      "phase_num": 5,
+      "description": "checklists: test and secrets passed; failed: lint (eslint --ext invalid with eslint.config.js flat config), typecheck and build (TS errors in src/testing/TestingHarness.ts, src/utils/helpers.ts, tests/core.test.ts), hygiene (3 external font URLs in index.html; absolute paths in scripts/generate_graphics.py and generate_proper_graphics.py; open() without with/encoding in scripts/resize_sprites.py), guidelines (README missing Cold-Start Quick Reference and What's Inside tree). No project commit made: gates did not pass (PRINCIPLE-011 R8); .aikit memory and ADR-001 stay uncommitted for the fixing task",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792438510.5228212,
+      "timestamp_str": "2026-10-19 22:35:10",
+      "impact_assessment": {
+        "why": "PRINCIPLE-001 R8 and PRINCIPLE-011 R8 require the check outcome in the task's latest checkpoint before any commit",
+        "benefits": "the failure list is exact and machine-recorded, so the next session resumes at the fixing point instead of re-running the whole check",
+        "risks": "contract: nothing was committed, the user's uncommitted asset work is untouched; dependency: none; concurrency: none; state: the .aikit/ memory exists on disk and is discoverable even uncommitted",
+        "mitigation": "fix a fresh task per PRINCIPLE-006; rerun python aikit.py check MemoryReconstruction until 7/7, then commit .aikit/ and .gitignore explicitly"
+      }
+    },
+    {
+      "task_id": "integrate-aikit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'integrate-aikit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792438515.7740636,
+      "timestamp_str": "2026-10-19 22:35:15"
+    },
+    {
+      "task_id": "green-gates",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] mechanical: rewrite eslint.config.js as a flat config for the installed ESLint 8.57 (legacy CJS config under type:module could never load) and fix the lint script, then repair resize_sprites.py open(); [2/4] hygiene: resolve the three external font URLs in index.html and the absolute machine paths in the two generate scripts; [3/4] typecheck and build: fix the TestingHarness event handlers, its nullable AISystem, helpers.pick's generic bound and the untyped config reads in tests/core.test.ts; [4/4] rerun aikit check to 7/7, record the checklist outcome, then commit .aikit/, .gitignore and the fixed files explicitly",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792438737.1970146,
+      "timestamp_str": "2026-10-19 22:38:57",
+      "impact_assessment": {
+        "why": "the integration check left 5 of 7 gates red and a project commits only when every gate passes (PRINCIPLE-011 R8), so these fixes unblock the first verified commit of MemoryReconstruction",
+        "benefits": "gates become real rather than declared: lint actually loads a config, typecheck and build pin the types, hygiene keeps the tree portable and offline-clean, README gains the cold-start contract",
+        "risks": "contract: fixes must not change game behaviour or weaken any test assertion; dependency: no new packages, the flat config uses packages already installed; concurrency: the user's other uncommitted asset work is never staged or edited; state: .aikit memory stays uncommitted until the final green run",
+        "mitigation": "run npm test after every milestone and the full aikit check at the end; typing fixes only cast or constrain, assertions stay untouched; if lint under the declared strictness produces a flood of findings, stop and bring the options to the user instead of weakening the config unilaterally"
+      }
+    },
+    {
+      "task_id": "green-gates",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "checklists: passed; all 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); resolved ESLint flat config, typing errors, build minifier, hygiene paths/font annotations, and README quick reference",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792440482.1176922,
+      "timestamp_str": "2026-10-19 23:08:02"
+    },
+    {
+      "task_id": "green-gates",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'green-gates' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792440656.6548042,
+      "timestamp_str": "2026-10-19 23:10:56"
+    }
+  ]
+}

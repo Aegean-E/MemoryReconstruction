@@ -1,22 +1,23 @@
 /**
  * Game Application - Main game loop and lifecycle management
- * 
+ *
  * Coordinates all systems, manages the game loop, and provides
  * serialization for RLM compatibility.
  */
 
-import { EventBus, GameEvents } from './EventBus';
-import { ModuleRegistry } from './ModuleRegistry';
-import { ConfigManager } from './ConfigManager';
-import { AssetManager } from '@engine/AssetManager';
-import { RenderSystem } from '@graphics/RenderSystem';
-import { InputSystem } from '@engine/InputSystem';
-import { AudioSystem } from '@audio/AudioSystem';
-import { WorldSystem } from '@gameplay/WorldSystem';
-import { PlayerSystem } from '@gameplay/PlayerSystem';
-import { CombatSystem } from '@gameplay/CombatSystem';
-import { AISystem } from '@ai/AISystem';
-import { TestingHarness } from '@testing/TestingHarness';
+import type { EventBus } from './EventBus';
+import { GameEvents } from './EventBus';
+import type { ModuleRegistry } from './ModuleRegistry';
+import type { ConfigManager } from './ConfigManager';
+import type { AssetManager } from '@engine/AssetManager';
+import type { RenderSystem } from '@graphics/RenderSystem';
+import type { InputSystem } from '@engine/InputSystem';
+import type { AudioSystem } from '@audio/AudioSystem';
+import type { WorldSystem } from '@gameplay/WorldSystem';
+import type { PlayerSystem } from '@gameplay/PlayerSystem';
+import type { CombatSystem } from '@gameplay/CombatSystem';
+import type { AISystem } from '@ai/AISystem';
+import type { TestingHarness } from '@testing/TestingHarness';
 
 export interface GameApplicationDependencies {
   eventBus: EventBus;
@@ -61,15 +62,15 @@ export class GameApplication {
 
   constructor(deps: GameApplicationDependencies) {
     this.deps = deps;
-      const gameplayConfig = deps.configManager.get('gameplay') as any;
-      this.seed = gameplayConfig.world.seed;
-      this.rng = this.createRNG(this.seed);
-    
-      // Set global RNG for deterministic behavior
-      (window as any).__GAME_RNG__ = this.rng;
-    
-      this.setupEventListeners();
-    }
+    const gameplayConfig = deps.configManager.get<any>('gameplay');
+    this.seed = gameplayConfig.world.seed;
+    this.rng = this.createRNG(this.seed);
+
+    // Set global RNG for deterministic behavior
+    (window as any).__GAME_RNG__ = this.rng;
+
+    this.setupEventListeners();
+  }
 
   /**
    * Create deterministic RNG from seed
@@ -108,11 +109,11 @@ export class GameApplication {
    */
   private setupEventListeners(): void {
     const { eventBus } = this.deps;
-    
+
     eventBus.on(GameEvents.GAME_PAUSE, () => this.pause());
     eventBus.on(GameEvents.GAME_RESUME, () => this.resume());
     eventBus.on(GameEvents.GAME_SHUTDOWN, () => this.shutdown());
-    
+
     // RLM state snapshots
     eventBus.on(GameEvents.RLM_STATE_SNAPSHOT, async () => {
       const state = this.serialize();
@@ -125,13 +126,13 @@ export class GameApplication {
    */
   async start(): Promise<void> {
     if (this.running) return;
-    
+
     this.running = true;
     this.paused = false;
     this.lastTime = performance.now();
-    
+
     await this.deps.eventBus.emit(GameEvents.GAME_START, { seed: this.seed });
-    
+
     this.gameLoop();
   }
 
@@ -140,39 +141,39 @@ export class GameApplication {
    */
   private gameLoop = (time: number = performance.now()): void => {
     if (!this.running) return;
-    
+
     const deltaTime = (time - this.lastTime) / 1000;
     this.lastTime = time;
-    
+
     if (!this.paused) {
       // Fixed timestep for deterministic simulation
       this.accumulator += deltaTime;
       let steps = 0;
-      
+
       while (this.accumulator >= this.fixedTimestep && steps < this.maxSubSteps) {
         this.fixedUpdate(this.fixedTimestep);
         this.accumulator -= this.fixedTimestep;
         steps++;
       }
-      
+
       // Variable timestep update for rendering
       this.variableUpdate(deltaTime);
-      
+
       this.frameCount++;
       this.playTime += deltaTime;
     }
-    
+
     // Emit frame events
-    this.deps.eventBus.emitSync(GameEvents.FRAME_START, { 
-      frame: this.frameCount, 
+    this.deps.eventBus.emitSync(GameEvents.FRAME_START, {
+      frame: this.frameCount,
       deltaTime,
-      playTime: this.playTime 
+      playTime: this.playTime,
     });
-    
-    this.deps.eventBus.emitSync(GameEvents.FRAME_END, { 
-      frame: this.frameCount 
+
+    this.deps.eventBus.emitSync(GameEvents.FRAME_END, {
+      frame: this.frameCount,
     });
-    
+
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
 
@@ -219,14 +220,14 @@ export class GameApplication {
    */
   async shutdown(): Promise<void> {
     if (!this.running) return;
-    
+
     this.running = false;
-    
+
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
-    
+
     await this.deps.moduleRegistry.shutdownAll();
     await this.deps.eventBus.emit(GameEvents.GAME_SHUTDOWN, {});
   }
@@ -236,7 +237,7 @@ export class GameApplication {
    */
   serialize(): GameState {
     const moduleStates = this.deps.moduleRegistry.serializeAll();
-    
+
     return {
       version: '0.1.0',
       timestamp: Date.now(),
@@ -246,7 +247,7 @@ export class GameApplication {
       frameCount: this.frameCount,
       playTime: this.playTime,
       modules: moduleStates,
-      rngState: this.rng.toString() // Simplified - in practice, serialize RNG state
+      rngState: this.rng.toString(), // Simplified - in practice, serialize RNG state
     };
   }
 
@@ -257,13 +258,13 @@ export class GameApplication {
     this.seed = state.seed;
     this.rng = this.createRNG(this.seed);
     (window as any).__GAME_RNG__ = this.rng;
-    
+
     this.frameCount = state.frameCount;
     this.playTime = state.playTime;
     this.paused = state.paused;
-    
+
     this.deps.moduleRegistry.deserializeAll(state.modules);
-    
+
     if (state.running && !this.running) {
       await this.start();
     } else if (!state.running && this.running) {
@@ -283,7 +284,7 @@ export class GameApplication {
       fps: 1 / (this.fixedTimestep || 0.016),
       seed: this.seed,
       tokenBudget: this.deps.moduleRegistry.getTotalTokenBudget(), // aikit:allow-secret
-      moduleCount: this.deps.moduleRegistry.getAllMetadata().length
+      moduleCount: this.deps.moduleRegistry.getAllMetadata().length,
     };
   }
 
@@ -293,19 +294,19 @@ export class GameApplication {
   async runHeadless(steps: number): Promise<GameState> {
     const wasRunning = this.running;
     const wasPaused = this.paused;
-    
+
     this.running = true;
     this.paused = false;
-    
+
     for (let i = 0; i < steps; i++) {
       this.fixedUpdate(this.fixedTimestep);
       this.frameCount++;
       this.playTime += this.fixedTimestep;
     }
-    
+
     this.running = wasRunning;
     this.paused = wasPaused;
-    
+
     return this.serialize();
   }
 }

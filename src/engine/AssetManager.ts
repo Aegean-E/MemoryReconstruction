@@ -1,12 +1,12 @@
 /**
  * Asset Manager - Centralized asset loading and caching
- * 
+ *
  * Handles textures, audio, shaders, and data files with
  * progress tracking for loading screens.
  */
 
-import { EventBus, GameEvents } from '@core/EventBus';
-import { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
+import type { EventBus } from '@core/EventBus';
+import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
 
 export interface AssetManifest {
   textures: Record<string, string>;
@@ -39,10 +39,10 @@ export class AssetManager implements IGameModule {
     this.eventBus = eventBus;
   }
 
-  async initialize(context: ModuleContext): Promise<void> {
+  async initialize(_context?: ModuleContext): Promise<void> {
     // Load manifest
     await this.loadManifest();
-    
+
     this.eventBus.emit('assetManager:ready', { manifest: this.manifest });
   }
 
@@ -64,23 +64,27 @@ export class AssetManager implements IGameModule {
    */
   async loadAll(onProgress?: (progress: LoadProgress) => void): Promise<void> {
     const allAssets = [
-      ...Object.entries(this.manifest.textures).map(([key, url]) => ({ key, url, type: 'texture' })),
+      ...Object.entries(this.manifest.textures).map(([key, url]) => ({
+        key,
+        url,
+        type: 'texture',
+      })),
       ...Object.entries(this.manifest.audio).map(([key, url]) => ({ key, url, type: 'audio' })),
       ...Object.entries(this.manifest.shaders).map(([key, url]) => ({ key, url, type: 'shader' })),
-      ...Object.entries(this.manifest.data).map(([key, url]) => ({ key, url, type: 'data' }))
+      ...Object.entries(this.manifest.data).map(([key, url]) => ({ key, url, type: 'data' })),
     ];
 
     const total = allAssets.length;
     let loaded = 0;
 
     for (const asset of allAssets) {
-          await this.load(asset.key, asset.url, asset.type as 'texture' | 'audio' | 'shader' | 'data');
+      await this.load(asset.key, asset.url, asset.type as 'texture' | 'audio' | 'shader' | 'data');
       loaded++;
       onProgress?.({
         loaded,
         total,
         currentAsset: asset.key,
-        percentage: (loaded / total) * 100
+        percentage: (loaded / total) * 100,
       });
       this.eventBus.emit('asset:loadProgress', { loaded, total, current: asset.key });
     }
@@ -89,7 +93,11 @@ export class AssetManager implements IGameModule {
   /**
    * Load a single asset
    */
-  async load(key: string, url: string, type: 'texture' | 'audio' | 'shader' | 'data'): Promise<any> {
+  async load(
+    key: string,
+    url: string,
+    type: 'texture' | 'audio' | 'shader' | 'data'
+  ): Promise<any> {
     // Return cached
     if (this.cache.has(key)) {
       return this.cache.get(key);
@@ -158,7 +166,7 @@ export class AssetManager implements IGameModule {
    * Preload asset (fire and forget)
    */
   preload(key: string, url: string, type: 'texture' | 'audio' | 'shader' | 'data'): void {
-    this.load(key, url, type).catch(err => 
+    this.load(key, url, type).catch((err) =>
       console.warn(`[AssetManager] Preload failed for ${key}:`, err)
     );
   }
@@ -186,7 +194,7 @@ export class AssetManager implements IGameModule {
     this.cache.clear();
   }
 
-  update(deltaTime: number): void {
+  update(_deltaTime: number): void {
     // No per-frame update needed
   }
 
@@ -201,9 +209,9 @@ export class AssetManager implements IGameModule {
       timestamp: Date.now(),
       data: {
         manifest: this.manifest,
-        cachedKeys: Array.from(this.cache.keys()) // aikit:allow-secret
+        cachedKeys: Array.from(this.cache.keys()), // aikit:allow-secret
       },
-      checksum: this.computeChecksum()
+      checksum: this.computeChecksum(),
     };
   }
 
@@ -217,7 +225,7 @@ export class AssetManager implements IGameModule {
     let hash = 0;
     for (const key of this.cache.keys()) {
       for (let i = 0; i < key.length; i++) {
-        hash = ((hash << 5) - hash) + key.charCodeAt(i);
+        hash = (hash << 5) - hash + key.charCodeAt(i);
         hash |= 0;
       }
     }

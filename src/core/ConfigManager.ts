@@ -258,6 +258,26 @@ export const ConfigSchemas = {
       xpCurve: z.array(z.number()).default([0, 100, 250, 500, 1000, 2000]),
       maxLevel: z.number().default(50),
       statPointsPerLevel: z.number().default(3),
+      fragments: z
+        .object({
+          xpValue: z.number().positive().default(10),
+          pickupRadius: z.number().positive().default(48),
+          bobAmplitude: z.number().nonnegative().default(4),
+          bobSpeed: z.number().nonnegative().default(3),
+        })
+        .default({}),
+      abilityUnlocks: z
+        .array(
+          z.object({
+            level: z.number().int().positive(),
+            ability: z.string().min(1),
+          })
+        )
+        .default([
+          { level: 2, ability: 'heal' },
+          { level: 4, ability: 'shield' },
+          { level: 6, ability: 'ultimate' },
+        ]),
     }),
     roguelike: z.object({
       enabled: z.boolean().default(true),

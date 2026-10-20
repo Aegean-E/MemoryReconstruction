@@ -20,6 +20,7 @@ import { AudioSystem } from '@audio/AudioSystem';
 import { WorldSystem } from '@gameplay/WorldSystem';
 import { PlayerSystem } from '@gameplay/PlayerSystem';
 import { CombatSystem } from '@gameplay/CombatSystem';
+import { MemoryFragmentSystem } from '@gameplay/MemoryFragmentSystem';
 import { AISystem } from '@ai/AISystem';
 import { TestingHarness } from '@testing/TestingHarness';
 
@@ -76,6 +77,7 @@ async function main(): Promise<void> {
     const worldSystem = new WorldSystem(eventBus, configManager.get('gameplay'));
     const playerSystem = new PlayerSystem(eventBus, configManager.get('gameplay'));
     const combatSystem = new CombatSystem(eventBus, configManager.get('gameplay'));
+    const memoryFragmentSystem = new MemoryFragmentSystem(eventBus, configManager.get('gameplay'));
     const actorRenderer = new ActorRenderer(eventBus);
     const aiSystem = new AISystem(eventBus, configManager.get('ai'));
     const testingHarness = new TestingHarness(eventBus, moduleRegistry);
@@ -108,6 +110,7 @@ async function main(): Promise<void> {
     moduleRegistry.setSharedState('worldSystem', worldSystem);
     moduleRegistry.setSharedState('playerSystem', playerSystem);
     moduleRegistry.setSharedState('combatSystem', combatSystem);
+    moduleRegistry.setSharedState('memoryFragmentSystem', memoryFragmentSystem);
     moduleRegistry.setSharedState('actorRenderer', actorRenderer);
     moduleRegistry.setSharedState('aiSystem', aiSystem);
     moduleRegistry.setSharedState('testingHarness', testingHarness);
@@ -119,6 +122,7 @@ async function main(): Promise<void> {
     moduleRegistry.register(worldSystem);
     moduleRegistry.register(playerSystem);
     moduleRegistry.register(combatSystem);
+    moduleRegistry.register(memoryFragmentSystem);
     moduleRegistry.register(actorRenderer);
     moduleRegistry.register(aiSystem);
     moduleRegistry.register(testingHarness);

@@ -53,6 +53,7 @@ Memory Reconstruction is a 2.5D action-roguelike metroidvania where you play as 
 
 - **2.5D Graphics**: Hand-painted Memory Light sprites, biome tile atlases, parallax backdrops, dynamic lighting and post-processing
 - **Adaptive Music**: Vertical layering system that responds to combat intensity
+- **Memory Fragment Loop**: Collect glowing fragments, earn experience, level up, and unlock new abilities
 - **Roguelike Runs**: Procedural worlds with meta-progression across runs
 - **AI-Native Architecture**: Built for AI testing, RLM compatibility, and deterministic simulation
 - **Modular Design**: Plugin architecture for easy extension
@@ -130,7 +131,7 @@ src/
 ├── engine/     # AssetManager, InputSystem
 ├── graphics/   # RenderSystem, ActorRenderer, atlases, HUD
 ├── audio/      # AudioSystem
-├── gameplay/   # WorldSystem, PlayerSystem, CombatSystem
+├── gameplay/   # WorldSystem, PlayerSystem, CombatSystem, MemoryFragmentSystem
 ├── ai/         # AISystem (RLM, agents, observation)
 ├── testing/    # TestingHarness (scenarios, replay, benchmarks)
 └── utils/      # Math, color, string, time helpers

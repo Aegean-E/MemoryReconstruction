@@ -67,7 +67,10 @@ The atlas is bundled at build time, while the images are served from the
   atlas, clamping variant indices safely.
 - **ActorRenderer** loads player strips and enemy sheets, animates actors from
   gameplay state, flips them by facing, follows the player with the camera, and
-  draws a themed health/mana/stamina HUD on the UI layer.
+  draws a themed health/mana/stamina HUD plus the memory-fragment counter and
+  level on the UI layer.
+- **MemoryFragmentSystem** turns `memoryFragment` world spawns into bobbing
+  memory-light sprites on the midground layer and removes them when collected.
 - **Layers**: background(0) -> midground(100) -> foreground(200) ->
   effects(300) -> ui(1000), with a backdrop at z-index -1000.
 - **Post-processing** remains bloom, vignette and color grading.

@@ -23,7 +23,18 @@
   "progression": {
     "xpCurve": [0, 100, 250, 500, 1000, 2000, 4000, 8000, 16000, 32000],
     "maxLevel": 50,
-    "statPointsPerLevel": 3
+    "statPointsPerLevel": 3,
+    "fragments": {
+      "xpValue": 10,
+      "pickupRadius": 48,
+      "bobAmplitude": 4,
+      "bobSpeed": 3
+    },
+    "abilityUnlocks": [
+      { "level": 2, "ability": "heal" },
+      { "level": 4, "ability": "shield" },
+      { "level": 6, "ability": "ultimate" }
+    ]
   },
   "roguelike": {
     "enabled": true,

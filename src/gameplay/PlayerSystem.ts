@@ -297,8 +297,11 @@ export class PlayerSystem implements IGameModule {
     this.eventBus.on('player:interact', () => this.onInteract());
     this.eventBus.on('player:useAbility', (data: any) => this.useAbility(data.id));
     this.eventBus.on('player:addExperience', (data: any) => this.addExperience(data.amount));
+    this.eventBus.on('player:addMemory', (data: any) =>
+      this.grantMemoryFragments(data?.amount ?? 1)
+    );
     this.eventBus.on('player:addItem', (data: any) => this.addItem(data.item));
-    this.eventBus.on('player:levelUp', () => this.onLevelUp());
+    this.eventBus.on('player:grantLevel', () => this.onLevelUp());
 
     this.eventBus.emit('playerSystem:ready', { stats: this.stats });
   }
@@ -676,7 +679,24 @@ export class PlayerSystem implements IGameModule {
     this.stats.health = Math.min(this.stats.maxHealth, this.stats.health + amount);
   }
 
+  private grantMemoryFragments(amount: number): void {
+    if (!Number.isFinite(amount)) return;
+
+    const fragments = Math.floor(amount);
+    if (fragments <= 0) return;
+
+    this.progression.memoryFragments += fragments;
+    this.addExperience(this.config.progression.fragments.xpValue * fragments);
+
+    this.eventBus.emit('player:memoryChanged', {
+      memoryFragments: this.progression.memoryFragments,
+      amount: fragments,
+    });
+  }
+
   private addExperience(amount: number): void {
+    if (!Number.isFinite(amount) || amount <= 0) return;
+
     this.progression.experience += amount;
 
     while (this.progression.experience >= this.progression.experienceToNext) {
@@ -706,10 +726,23 @@ export class PlayerSystem implements IGameModule {
       level: this.progression.level,
       statPoints: this.progression.statPoints,
     });
+
+    for (const unlock of this.config.progression.abilityUnlocks) {
+      if (unlock.level !== this.progression.level) continue;
+      const ability = this.abilities.get(unlock.ability);
+      if (ability && this.unlockAbility(unlock.ability)) {
+        this.eventBus.emit('player:abilityUnlocked', {
+          abilityId: ability.id,
+          name: ability.name,
+          level: this.progression.level,
+        });
+      }
+    }
   }
 
   private onLevelUp(): void {
-    // Called from external (e.g., UI)
+    // External grant path (e.g., a debug command or UI reward). The
+    // PLAYER_LEVEL_UP event is an output and must not loop back into levelUp.
     this.levelUp();
   }
 
@@ -741,6 +774,10 @@ export class PlayerSystem implements IGameModule {
   }
   getProgression(): Readonly<ProgressionData> {
     return this.progression;
+  }
+
+  collectMemoryFragments(amount = 1): void {
+    this.grantMemoryFragments(amount);
   }
 
   setPosition(x: number, y: number): void {

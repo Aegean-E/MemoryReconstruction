@@ -1,12 +1,12 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "cleanup-stale-scaffolding",
+    "task_id": "memory-fragment-loop",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1792510857.4288118,
-    "completed_at": 1792510859.739986
+    "updated_at": 1792511494.3999221,
+    "completed_at": 1792511501.9837782
   },
   "checkpoints": [
     {
@@ -179,6 +179,41 @@
       "status": "completed",
       "timestamp": 1792510859.7399871,
       "timestamp_str": "2026-10-20 18:40:59"
+    },
+    {
+      "task_id": "memory-fragment-loop",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] progression contract: add gameplay.progression.fragments and abilityUnlocks config, handle player:addMemory in PlayerSystem (fragments -> XP -> level -> ability unlock), and write failing-first tests; [2/4] world collectibles: MemoryFragmentSystem with deterministic chunk spawns, pickup radius, bob animation, collected-set persistence, main.ts registration, and tests; [3/4] presentation and docs: HUD fragment counter and level, README/architecture/graphics updates, ADR-003; [4/4] run all 7 gates, record the checklist, commit, strict-verify and push",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792511077.3756769,
+      "timestamp_str": "2026-10-20 18:44:37",
+      "impact_assessment": {
+        "why": "the game already spawns memoryFragment entities and awards memoryValue on kills, but nothing collects world fragments, nothing listens to player:addMemory, the HUD never shows fragments or level, and the progression data is therefore dead state",
+        "benefits": "the core Memory Reconstruction loop becomes playable: explore, collect glowing fragments, earn XP, level up, unlock heal/shield/ultimate, and see progress in the HUD; the loop is deterministic, serializable, and tested",
+        "risks": "contract: new config keys and a new module, existing PlayerSystem API unchanged; dependency: no new packages, PixiJS and Vitest already declared; concurrency: no parallel writer, the tree is clean at start; state: new collected-fragment state is serialized in the new module and PlayerSystem progression remains backward compatible",
+        "mitigation": "write unit tests first for fragment XP, negative amounts, level-up unlocks, chunk spawn extraction and pickup distance; keep PIXI rendering out of the pure helpers; run npm test after each milestone and the full 7-gate check before committing"
+      }
+    },
+    {
+      "task_id": "memory-fragment-loop",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "checklists: passed; 7/7 project gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); added the configurable fragment XP/ability-unlock contract, MemoryFragmentSystem with deterministic ids, pickup radius, bob animation and serialized collected set, HUD fragment/level display, world spawn entries in every biome, cached-chunk reload so fragments and tiles return after streaming out, and failing-first tests for progression, helpers, persistence and chunk streaming",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792511494.3999221,
+      "timestamp_str": "2026-10-20 18:51:34"
+    },
+    {
+      "task_id": "memory-fragment-loop",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'memory-fragment-loop' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792511501.9837809,
+      "timestamp_str": "2026-10-20 18:51:41"
     }
   ]
 }

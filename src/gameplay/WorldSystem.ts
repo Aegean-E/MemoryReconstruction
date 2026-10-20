@@ -145,6 +145,7 @@ export class WorldSystem implements IGameModule {
           { entityType: 'scavenger', weight: 10, minDepth: 0, maxDepth: 10 },
           { entityType: 'guardian', weight: 3, minDepth: 5, maxDepth: 20 },
           { entityType: 'memoryEcho', weight: 5, minDepth: 0, maxDepth: 50 },
+          { entityType: 'memoryFragment', weight: 4, minDepth: 0, maxDepth: 50 },
         ],
         colorPalette: [0x8b7355, 0x6b5b4a, 0xa08a6e, 0x4a3f35],
         musicTheme: 'exploration',
@@ -158,6 +159,7 @@ export class WorldSystem implements IGameModule {
           { entityType: 'wildling', weight: 8, minDepth: 0, maxDepth: 15 },
           { entityType: 'spirit', weight: 4, minDepth: 10, maxDepth: 30 },
           { entityType: 'ancientTree', weight: 1, minDepth: 20, maxDepth: 50 },
+          { entityType: 'memoryFragment', weight: 3, minDepth: 0, maxDepth: 50 },
         ],
         colorPalette: [0x2d5016, 0x3d6b1f, 0x1b3a0f, 0x4e7b2a],
         musicTheme: 'exploration',
@@ -171,6 +173,7 @@ export class WorldSystem implements IGameModule {
           { entityType: 'caveDweller', weight: 12, minDepth: 0, maxDepth: 20 },
           { entityType: 'crystalGolem', weight: 3, minDepth: 15, maxDepth: 40 },
           { entityType: 'shadow', weight: 6, minDepth: 10, maxDepth: 50 },
+          { entityType: 'memoryFragment', weight: 3, minDepth: 0, maxDepth: 50 },
         ],
         colorPalette: [0x2c2c3a, 0x3a3a4e, 0x1e1e28, 0x4a4a6a],
         musicTheme: 'combat',
@@ -209,6 +212,7 @@ export class WorldSystem implements IGameModule {
         entityTables: [
           { entityType: 'keeper', weight: 1, minDepth: 0, maxDepth: 10 },
           { entityType: 'memoryEcho', weight: 10, minDepth: 0, maxDepth: 50 },
+          { entityType: 'memoryFragment', weight: 5, minDepth: 0, maxDepth: 50 },
         ],
         colorPalette: [0xffd700, 0xffa500, 0xff8c00, 0xffffe0],
         musicTheme: 'victory',
@@ -272,7 +276,18 @@ export class WorldSystem implements IGameModule {
 
   private ensureChunk(x: number, y: number): void {
     const key = `${x},${y}`;
-    if (this.chunks.has(key)) return;
+    const cached = this.chunks.get(key);
+
+    if (cached) {
+      if (this.loadedChunks.has(key)) return;
+
+      // Chunks stay cached after streaming out. Reattach and re-render the
+      // cached chunk instead of leaving a hole in the world when the player returns.
+      this.loadedChunks.add(key);
+      this.renderChunk(cached);
+      this.eventBus.emit('world:chunkGenerated', { chunk: cached });
+      return;
+    }
 
     this.queueChunkGeneration(x, y, 5);
   }
@@ -500,7 +515,7 @@ export class WorldSystem implements IGameModule {
 
     // Create tile graphics (simplified - would use tilemap in production)
     const container = new PIXI.Container();
-    container.name = `chunk_${chunk.x}_${chunk.y}`;
+    container.label = `chunk_${chunk.x}_${chunk.y}`;
 
     const biomeConfig = this.biomes.find((b) => b.name === chunk.biome)!;
 
@@ -563,7 +578,7 @@ export class WorldSystem implements IGameModule {
     // Remove from render layer
     const layer = this.renderSystem?.getLayer('background');
     if (layer) {
-      const container = layer.getChildByName(`chunk_${x}_${y}`);
+      const container = layer.getChildByLabel(`chunk_${x}_${y}`);
       if (container) {
         layer.removeChild(container);
         container.destroy({ children: true });
@@ -629,6 +644,15 @@ export class WorldSystem implements IGameModule {
   getSpawnEntities(chunkX: number, chunkY: number): EntitySpawnData[] {
     const chunk = this.chunks.get(`${chunkX},${chunkY}`);
     return chunk?.entities ?? [];
+  }
+
+  getLoadedChunks(): ChunkData[] {
+    const loaded: ChunkData[] = [];
+    for (const key of this.loadedChunks) {
+      const chunk = this.chunks.get(key);
+      if (chunk) loaded.push(chunk);
+    }
+    return loaded;
   }
 
   update(_deltaTime: number): void {

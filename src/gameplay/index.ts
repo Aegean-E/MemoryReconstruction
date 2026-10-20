@@ -21,6 +21,12 @@ export {
   type ProgressionData,
 } from './PlayerSystem';
 export {
+  MemoryFragmentSystem,
+  fragmentSpawnsFromChunk,
+  isWithinPickupRadius,
+  type FragmentSpawn,
+} from './MemoryFragmentSystem';
+export {
   CombatSystem,
   type CombatEntity,
   type EntityStats,

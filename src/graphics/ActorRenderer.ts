@@ -56,8 +56,12 @@ export class ActorRenderer implements IGameModule {
   private hudBars: HudBar[] = [];
   private hudValues: PIXI.Text[] = [];
   private hudIconTextures = new Map<string, PIXI.Texture>();
+  private hudMemoryText: PIXI.Text | null = null;
+  private hudLevelText: PIXI.Text | null = null;
   private lastHudRatios: number[] = [];
   private lastHudLabels: string[] = [];
+  private lastHudMemory = -1;
+  private lastHudLevel = -1;
 
   constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -210,6 +214,38 @@ export class ActorRenderer implements IGameModule {
     });
     title.position.set(2, -22);
     this.hud.addChild(title);
+
+    this.hudLevelText = new PIXI.Text({
+      text: 'LV 1',
+      style: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 12,
+        fill: 0xd8d2c0,
+        letterSpacing: 1,
+      },
+    });
+    this.hudLevelText.position.set(148, -20);
+    this.hud.addChild(this.hudLevelText);
+
+    const memoryIcon = this.hudIconTextures.get('memory_fragment');
+    if (memoryIcon) {
+      const icon = new PIXI.Sprite(memoryIcon);
+      icon.width = 32;
+      icon.height = 32;
+      icon.position.set(508, 2);
+      this.hud.addChild(icon);
+    }
+
+    this.hudMemoryText = new PIXI.Text({
+      text: '0',
+      style: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 16,
+        fill: 0x9fe8ff,
+      },
+    });
+    this.hudMemoryText.position.set(544, 8);
+    this.hud.addChild(this.hudMemoryText);
 
     uiLayer.addChild(this.hud);
   }
@@ -418,6 +454,16 @@ export class ActorRenderer implements IGameModule {
       bar.fill.roundRect(0, 0, Math.max(3, bar.width * ratio), 4, 2);
       bar.fill.fill({ color: 0xffffff, alpha: 0.22 });
     }
+
+    const progression = this.playerSystem.getProgression();
+    if (this.hudMemoryText && this.lastHudMemory !== progression.memoryFragments) {
+      this.lastHudMemory = progression.memoryFragments;
+      this.hudMemoryText.text = `${progression.memoryFragments}`;
+    }
+    if (this.hudLevelText && this.lastHudLevel !== progression.level) {
+      this.lastHudLevel = progression.level;
+      this.hudLevelText.text = `LV ${progression.level}`;
+    }
   }
 
   async shutdown(): Promise<void> {
@@ -429,6 +475,8 @@ export class ActorRenderer implements IGameModule {
     this.actors.clear();
     this.hud?.destroy({ children: true });
     this.hud = null;
+    this.hudMemoryText = null;
+    this.hudLevelText = null;
   }
 
   serialize(): ModuleState {

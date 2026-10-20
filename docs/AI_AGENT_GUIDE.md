@@ -29,7 +29,7 @@ src/
 ├── engine/         # AssetManager, InputSystem
 ├── graphics/       # RenderSystem (PixiJS + WebGPU shaders)
 ├── audio/          # AudioSystem (Web Audio API + adaptive music)
-├── gameplay/       # WorldSystem, PlayerSystem, CombatSystem
+├── gameplay/       # WorldSystem, PlayerSystem, CombatSystem, MemoryFragmentSystem
 ├── ai/             # AISystem (RLM compatibility, AI agents)
 ├── testing/        # TestingHarness (deterministic testing, replay)
 └── utils/          # Math, Color, String, Time, Array, Object helpers

@@ -103,6 +103,12 @@
 - **Entities**: Spawn tables per biome with depth constraints
 - **Streaming**: Load/unload based on view distance (3 chunks)
 
+### MemoryFragmentSystem (`src/gameplay/MemoryFragmentSystem.ts`)
+- **Source of truth**: World chunk spawn tables already mark `memoryFragment` positions; the system derives a stable id from `chunkX,chunkY:entityIndex`.
+- **Presentation**: Animated memory-light sprites on the midground layer, with a deterministic bob and a graceful white-sprite fallback when the texture is unavailable.
+- **Collection**: Each update compares the player position against the configured pickup radius; a collected id is added to a serialized set so an unloaded and regenerated chunk never respawns it.
+- **Events**: Emits `player:addMemory`, `memory:fragmentCollected` and a `memoryPickup` graphics effect, keeping progression and presentation decoupled.
+
 ### PlayerSystem (`src/gameplay/PlayerSystem.ts`)
 - **Stats**: Health, mana, stamina, base stats (str/dex/int/vit), derived stats
 - **State**: Position, velocity, facing, grounded, dashing, attacking, invincible
@@ -174,6 +180,17 @@ InputSystem detects attack key
     → EventBus.emit(COMBAT_KILL) if dead
   → RenderSystem plays effect
   → AudioSystem plays SFX
+```
+
+### Event Flow Example: Memory Fragment Pickup
+```
+MemoryFragmentSystem sees the player inside pickupRadius
+  → marks the fragment id collected and removes its sprite
+  → EventBus.emit('player:addMemory', { amount: 1 })
+  → PlayerSystem increments memoryFragments and grants fragment XP
+  → levelUp() may unlock heal/shield/ultimate from progression.abilityUnlocks
+  → EventBus.emit('player:memoryChanged') and 'player:abilityUnlocked'
+  → ActorRenderer HUD reads progression for the fragment count and level
 ```
 
 ### RLM State Snapshot

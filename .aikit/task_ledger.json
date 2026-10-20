@@ -3,20 +3,12 @@
   "active_task": {
     "task_id": "zero-friction-start",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792515001.7636776
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792515001.7636776,
+    "completed_at": 1792515018.3109627
   },
   "checkpoints": [
-    {
-      "task_id": "integrate-aikit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'integrate-aikit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792438515.7740636,
-      "timestamp_str": "2026-10-19 22:35:15"
-    },
     {
       "task_id": "green-gates",
       "phase": "phase 2",
@@ -242,6 +234,15 @@
       "status": "in_progress",
       "timestamp": 1792515001.7636776,
       "timestamp_str": "2026-10-20 19:50:01"
+    },
+    {
+      "task_id": "zero-friction-start",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'zero-friction-start' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792515018.310964,
+      "timestamp_str": "2026-10-20 19:50:18"
     }
   ]
 }

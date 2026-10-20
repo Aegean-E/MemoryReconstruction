@@ -3,9 +3,10 @@
   "active_task": {
     "task_id": "player-melee-resolution",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792512598.9767237
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792512598.9767237,
+    "completed_at": 1792512643.3451157
   },
   "checkpoints": [
     {
@@ -239,6 +240,15 @@
       "status": "in_progress",
       "timestamp": 1792512598.9767237,
       "timestamp_str": "2026-10-20 19:09:58"
+    },
+    {
+      "task_id": "player-melee-resolution",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'player-melee-resolution' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792512643.345117,
+      "timestamp_str": "2026-10-20 19:10:43"
     }
   ]
 }

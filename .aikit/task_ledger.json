@@ -1,17 +1,12 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "memory-light-art",
+    "task_id": "readme-license-tree",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792506468.0256102,
-    "impact_assessment": {
-      "why": "the game shipped placeholder graph art and no runtime actor rendering, so the visual layer did not represent the Memory Reconstruction theme",
-      "benefits": "coherent themed art direction, animated player and enemies, biome tile atlases, parallax backdrops, themed HUD, and a reproducible generator wired to npm",
-      "risks": "contract: asset paths and atlas metadata must match the runtime; dependency: Pillow is only needed to regenerate art, not to run or build; concurrency: existing uncommitted user work stays untouched; state: generated binaries increase repository size but remain deterministic",
-      "mitigation": "sprite_atlas is validated by tests, build copies assets into dist, and headless runtime checks confirm centered camera, pinned HUD, actors and zero failed requests"
-    }
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792509527.3332365,
+    "completed_at": 1792509541.3796043
   },
   "checkpoints": [
     {
@@ -105,6 +100,50 @@
         "risks": "contract: asset paths and atlas metadata must match the runtime; dependency: Pillow is only needed to regenerate art, not to run or build; concurrency: existing uncommitted user work stays untouched; state: generated binaries increase repository size but remain deterministic",
         "mitigation": "sprite_atlas is validated by tests, build copies assets into dist, and headless runtime checks confirm centered camera, pinned HUD, actors and zero failed requests"
       }
+    },
+    {
+      "task_id": "memory-light-art",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'memory-light-art' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792509495.3257062,
+      "timestamp_str": "2026-10-20 18:18:15"
+    },
+    {
+      "task_id": "readme-license-tree",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] add the tracked LICENSE file to the README tree, rerun the 7 project gates, and commit the doc fix",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792509502.6545508,
+      "timestamp_str": "2026-10-20 18:18:22",
+      "impact_assessment": {
+        "why": "the AGPL-3.0 license commit added LICENSE but left README.md's tree incomplete, so the guidelines gate now fails and a cold-starting agent sees a tree that disagrees with the repository",
+        "benefits": "README and tracked files agree again; the project's Phase 4 gate returns to 7/7 so the next feature starts from a green baseline",
+        "risks": "contract: documentation only, no code or behavior change; dependency: none; concurrency: none, no other writer is touching README; state: none, only the README line changes",
+        "mitigation": "verify the tree against git ls-files, rerun python aikit.py check MemoryReconstruction to 7/7, then stage README.md alone and commit it"
+      }
+    },
+    {
+      "task_id": "readme-license-tree",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "checklists: passed; 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); README tree now lists the tracked LICENSE file",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792509527.3332365,
+      "timestamp_str": "2026-10-20 18:18:47"
+    },
+    {
+      "task_id": "readme-license-tree",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'readme-license-tree' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792509541.379606,
+      "timestamp_str": "2026-10-20 18:19:01"
     }
   ]
 }

@@ -34,6 +34,7 @@ MemoryReconstruction/
 ├── docs/
 ├── eslint.config.js
 ├── index.html
+├── LICENSE
 ├── package-lock.json
 ├── package.json
 ├── scripts/

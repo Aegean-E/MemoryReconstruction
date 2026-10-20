@@ -6,15 +6,51 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `7`
+- **Total Python Modules**: `5`
 - **Total Classes**: `0`
-- **Total Top-Level Functions**: `28`
+- **Total Top-Level Functions**: `40`
 - **Total Class Methods**: `0`
-- **Total Source Lines**: `776`
+- **Total Source Lines**: `1637`
 
 ---
 
 ## 📦 Modules & Exported Symbols
+
+### [`scripts/generate_art_assets.py`](scripts/generate_art_assets.py)
+> *Generate the Memory Reconstruction art set.*
+
+**Size**: `1177` lines (`53292` bytes)
+
+**Functions:**
+- `def rgba(color, alpha)`
+- `def blank(cell)`
+- `def ellipse(draw, cell, x0, y0, x1, y1, fill, outline, width)`
+- `def rect(draw, cell, x0, y0, x1, y1, fill, outline, width, radius)`
+- `def poly(draw, cell, points, fill, outline, width)`
+- `def line(draw, cell, points, fill, width)`
+- `def glow(img, paint, blur)`
+- `def downsample(img, cell)`
+- `def save_cell(img, cell, path)`
+- `def mix(a, b, t)`
+- `def player_scarf(state, t, bob)`
+- `def player_frame(state, frame, frames)`
+- `def _enemy_common(draw, cell, style, row, frame, t)`
+- `def _construct(draw, cell, style, row, frame, t)`
+- `def _hunched(draw, cell, style, row, frame, t)`
+- `def _wisp(draw, cell, style, row, frame, t)`
+- `def _beast(draw, cell, style, row, frame, t)`
+- `def _duelist(draw, cell, style, row, frame, t)`
+- `def _keeper(draw, cell, style, row, frame, t)`
+- `def enemy_frame(kind, row, frame, frames)`
+- `def tile_image(biome, tile_type, variant)`
+- `def background_image(biome)`
+- `def prop_image(kind)`
+- `def ui_image(kind)`
+- `def particle_image(kind)`
+- `def banner_image()`
+- `def build()`
+
+---
 
 ### [`scripts/generate_graphics.py`](scripts/generate_graphics.py)
 > *Generate graph visualizations for Memory Reconstruction game.*
@@ -24,25 +60,6 @@
 **Functions:**
 - `def create_graph(path, category, index, size)` - *Create a network graph visualization with nodes and edges.*
 - `def main()`
-
----
-
-### [`scripts/generate_handpainted_sprites.py`](scripts/generate_handpainted_sprites.py)
-**Size**: `75` lines (`2649` bytes)
-
-**Functions:**
-- `def hand_paint(img_size)`
-- `def make_sprite(path, palette)`
-
----
-
-### [`scripts/generate_octopath_sprites.py`](scripts/generate_octopath_sprites.py)
-**Size**: `92` lines (`3141` bytes)
-
-**Functions:**
-- `def new_img()`
-- `def draw_octopath_sprite(draw, palette, shape)`
-- `def make_sprite(path, palette, shape)`
 
 ---
 
@@ -60,23 +77,6 @@
 - `def create_ui_icon(name, palette)`
 - `def create_particle_sprite(name, palette)`
 - `def main()`
-
----
-
-### [`scripts/generate_realistic_sprites.py`](scripts/generate_realistic_sprites.py)
-**Size**: `149` lines (`4539` bytes)
-
-**Functions:**
-- `def blank()`
-- `def draw_player_idle()`
-- `def draw_player_walk()`
-- `def draw_player_attack()`
-- `def draw_player_dash()`
-- `def draw_enemy(name)`
-- `def draw_tileset(name)`
-- `def draw_ui(name)`
-- `def draw_particle(name)`
-- `def save(path, img)`
 
 ---
 

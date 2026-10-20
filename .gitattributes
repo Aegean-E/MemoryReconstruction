@@ -1,0 +1,11 @@
+# Every text file is normalized to LF in the repository and on checkout, so the
+# .prettierrc endOfLine "lf" contract holds on Windows too (core.autocrlf cannot
+# reintroduce CRLF into the working tree).
+* text=auto eol=lf
+
+# Binary asset formats are left untouched.
+*.png binary
+*.jpg binary
+*.gif binary
+*.woff2 binary
+*.ico binary

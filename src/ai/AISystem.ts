@@ -80,7 +80,7 @@ export interface AIObservation {
 export class AISystem implements IGameModule {
   readonly name = 'aiSystem';
   readonly version = '1.0.0';
-  readonly dependencies = ['gameApplication', 'moduleRegistry'];
+  readonly dependencies: string[] = [];
   readonly tokenBudget = 5000; // aikit:allow-secret
 
   private eventBus: EventBus;

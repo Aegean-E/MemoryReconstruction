@@ -15,6 +15,10 @@ import { GameEvents } from '@core/EventBus';
 import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
 import type { GraphicsConfig } from '@core/ConfigManager';
 import type { AssetManager } from '@engine/AssetManager';
+import spriteAtlas from '@assets/data/sprite_atlas.json';
+import { resolveAssetUrl } from '@utils/assetUrl';
+import { loadTextureAtlas } from './TextureAtlas';
+import type { TextureAtlas } from './TextureAtlas';
 
 export interface LayerConfig {
   name: string;
@@ -79,6 +83,12 @@ export class RenderSystem implements IGameModule {
   private vignetteFilter: ColorMatrixFilter | null = null;
   private colorGradingFilter: ColorMatrixFilter | null = null;
 
+  // Art
+  private tilesetAtlases = new Map<string, TextureAtlas>();
+  private backgroundTextures = new Map<string, PIXI.Texture>();
+  private backdrop: PIXI.TilingSprite | null = null;
+  private currentBiome = 'ruins';
+
   // Stats
   private stats: RenderStats = { fps: 0, drawCalls: 0, triangles: 0, textures: 0, particles: 0 };
   private lastStatsTime = 0;
@@ -114,10 +124,13 @@ export class RenderSystem implements IGameModule {
       this.app.canvas.style.height = '100%';
     }
 
+    await this.loadArtTextures();
+
     // Setup layers
     this.createLayers();
 
-    // Setup lighting
+    // Setup backdrop and lighting
+    this.setupBackdrop();
     this.setupLighting();
 
     // Setup particles
@@ -139,6 +152,78 @@ export class RenderSystem implements IGameModule {
     this.setupEventListeners();
 
     this.eventBus.emit('renderSystem:ready', { app: this.app });
+  }
+
+  private async loadArtTextures(): Promise<void> {
+    try {
+      for (const [biome, definition] of Object.entries(spriteAtlas.tilesets)) {
+        this.tilesetAtlases.set(
+          biome,
+          await loadTextureAtlas(
+            definition.texture,
+            definition.columns,
+            definition.rows,
+            definition.tileSize,
+            definition.tileSize
+          )
+        );
+      }
+      for (const [biome, path] of Object.entries(spriteAtlas.backgrounds)) {
+        this.backgroundTextures.set(
+          biome,
+          await PIXI.Assets.load<PIXI.Texture>(resolveAssetUrl(path))
+        );
+      }
+    } catch (error) {
+      console.warn('[RenderSystem] Art textures unavailable, using flat colors:', error);
+    }
+  }
+
+  private setupBackdrop(): void {
+    if (!this.app) return;
+    const texture =
+      this.backgroundTextures.get(this.currentBiome) ??
+      this.backgroundTextures.values().next().value ??
+      null;
+    if (!texture) return;
+
+    this.backdrop = new PIXI.TilingSprite({
+      texture,
+      width: this.app.screen.width,
+      height: this.app.screen.height,
+    });
+    this.backdrop.label = 'backdrop';
+    this.backdrop.alpha = 0.5;
+    this.backdrop.zIndex = -1000;
+    this.backdrop.eventMode = 'none';
+    this.app.stage.addChild(this.backdrop);
+    this.app.stage.sortChildren();
+  }
+
+  private updateBackdrop(): void {
+    if (!this.backdrop || !this.app) return;
+    const screen = this.app.screen;
+    this.backdrop.position.set(this.camera.x - screen.width / 2, this.camera.y - screen.height / 2);
+    this.backdrop.tilePosition.set(this.camera.x * 0.15, this.camera.y * 0.15);
+  }
+
+  private setBiomeBackdrop(biome: string): void {
+    const texture = this.backgroundTextures.get(biome);
+    if (!texture || !this.backdrop) return;
+    this.currentBiome = biome;
+    this.backdrop.texture = texture;
+  }
+
+  getTileTexture(biome: string, tileType: string, variant: number): PIXI.Texture | null {
+    if (tileType === 'empty') return null;
+    const definition = spriteAtlas.tilesets[biome as keyof typeof spriteAtlas.tilesets];
+    if (!definition) return null;
+    const row = definition.rowMap[tileType as keyof typeof definition.rowMap];
+    if (row === undefined) return null;
+    const atlas = this.tilesetAtlases.get(biome) ?? this.tilesetAtlases.get('ruins');
+    if (!atlas) return null;
+    const column = Math.min(Math.max(Math.floor(variant), 0), definition.columns - 1);
+    return atlas.frameAt(column, row);
   }
 
   private createLayers(): void {
@@ -271,6 +356,7 @@ export class RenderSystem implements IGameModule {
     this.eventBus.on('camera:zoom', (data: any) => this.zoomCamera(data));
     this.eventBus.on('light:add', (data: any) => this.addLight(data));
     this.eventBus.on('light:remove', (data: any) => this.removeLight(data));
+    this.eventBus.on('world:biomeChanged', (data: any) => this.setBiomeBackdrop(data.biome));
   }
 
   private render(): void {
@@ -284,6 +370,9 @@ export class RenderSystem implements IGameModule {
 
     // Apply camera transform
     this.applyCameraTransform();
+
+    // Update backdrop
+    this.updateBackdrop();
 
     // Update parallax
     this.updateParallax();
@@ -336,8 +425,8 @@ export class RenderSystem implements IGameModule {
     stage.position.y += this.camera.shake.y;
 
     // Apply camera offset
-    stage.position.x -= this.camera.x * this.camera.zoom;
-    stage.position.y -= this.camera.y * this.camera.zoom;
+    stage.position.x += (cx - this.camera.x) * this.camera.zoom;
+    stage.position.y += (cy - this.camera.y) * this.camera.zoom;
   }
 
   private updateParallax(): void {
@@ -516,6 +605,11 @@ export class RenderSystem implements IGameModule {
     const height = window.innerHeight;
 
     this.app.renderer.resize(width, height);
+    if (this.backdrop) {
+      this.backdrop.width = width + 2;
+      this.backdrop.height = height + 2;
+    }
+    this.updateBackdrop();
 
     // Update layer culling areas
     for (const layer of this.layers.values()) {

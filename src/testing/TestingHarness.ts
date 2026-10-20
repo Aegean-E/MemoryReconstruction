@@ -97,7 +97,7 @@ export interface BenchmarkResult {
 export class TestingHarness implements IGameModule {
   readonly name = 'testingHarness';
   readonly version = '1.0.0';
-  readonly dependencies = ['gameApplication', 'moduleRegistry', 'aiSystem'];
+  readonly dependencies = ['aiSystem'];
   readonly tokenBudget = 2000;
 
   private eventBus: EventBus;

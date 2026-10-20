@@ -9,6 +9,9 @@ import type { EventBus } from '@core/EventBus';
 import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
 import type { GameplayConfig } from '@core/ConfigManager';
 import type { RenderSystem } from '@graphics/RenderSystem';
+import { resolveTileColor } from './tileColors';
+
+export const TILE_SIZE = 32;
 
 export interface ChunkData {
   x: number;
@@ -367,10 +370,10 @@ export class WorldSystem implements IGameModule {
     const tiles: TileData[][] = [];
     const chunkPixelSize = this.chunkSize;
 
-    for (let ty = 0; ty < chunkPixelSize; ty += 16) {
-      // 16px tiles
+    for (let ty = 0; ty < chunkPixelSize; ty += TILE_SIZE) {
+      // 32px tiles
       const row: TileData[] = [];
-      for (let tx = 0; tx < chunkPixelSize; tx += 16) {
+      for (let tx = 0; tx < chunkPixelSize; tx += TILE_SIZE) {
         const worldX = x * chunkPixelSize + tx;
         const worldY = y * chunkPixelSize + ty;
 
@@ -479,8 +482,8 @@ export class WorldSystem implements IGameModule {
     const chunk = this.chunks.get(key);
     if (!chunk) return true; // Not generated yet, assume valid
 
-    const tx = Math.floor((x % this.chunkSize) / 16);
-    const ty = Math.floor((y % this.chunkSize) / 16);
+    const tx = Math.floor((x % this.chunkSize) / TILE_SIZE);
+    const ty = Math.floor((y % this.chunkSize) / TILE_SIZE);
 
     if (ty < 0 || ty >= chunk.tiles.length) return false;
     if (tx < 0 || tx >= chunk.tiles[0].length) return false;
@@ -506,13 +509,23 @@ export class WorldSystem implements IGameModule {
         const tile = chunk.tiles[ty][tx];
         if (tile.type === 'empty') continue;
 
+        const texture = this.renderSystem.getTileTexture(chunk.biome, tile.type, tile.variant);
+        if (texture) {
+          const sprite = new PIXI.Sprite(texture);
+          sprite.position.set(tx * TILE_SIZE, ty * TILE_SIZE);
+          sprite.width = TILE_SIZE;
+          sprite.height = TILE_SIZE;
+          container.addChild(sprite);
+          continue;
+        }
+
         const gfx = new PIXI.Graphics();
         const color = this.getTileColor(tile, biomeConfig);
-        gfx.rect(tx * 16, ty * 16, 16, 16);
+        gfx.rect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         gfx.fill({ color, alpha: tile.type === 'hazard' ? 0.6 : 1 });
 
         if (tile.properties.solid) {
-          gfx.rect(tx * 16, ty * 16, 16, 16);
+          gfx.rect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           gfx.stroke({ color: 0x000000, width: 1, alpha: 0.3 });
         }
 
@@ -525,9 +538,7 @@ export class WorldSystem implements IGameModule {
   }
 
   private getTileColor(tile: TileData, biome: BiomeConfig): number {
-    const colors = biome.colorPalette;
-    const baseIndex = Math.min(tile.variant, colors.length - 1);
-    return colors[baseIndex];
+    return resolveTileColor(tile, biome);
   }
 
   private unloadDistantChunks(playerChunkX: number, playerChunkY: number): void {
@@ -594,8 +605,8 @@ export class WorldSystem implements IGameModule {
     const chunk = this.chunks.get(`${chunkX},${chunkY}`);
     if (!chunk) return null;
 
-    const tx = Math.floor((worldX % this.chunkSize) / 16);
-    const ty = Math.floor((worldY % this.chunkSize) / 16);
+    const tx = Math.floor((worldX % this.chunkSize) / TILE_SIZE);
+    const ty = Math.floor((worldY % this.chunkSize) / TILE_SIZE);
 
     if (ty < 0 || ty >= chunk.tiles.length) return null;
     if (tx < 0 || tx >= chunk.tiles[0].length) return null;

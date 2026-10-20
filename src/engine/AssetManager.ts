@@ -7,6 +7,7 @@
 
 import type { EventBus } from '@core/EventBus';
 import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
+import { resolveAssetUrl } from '@utils/assetUrl';
 
 export interface AssetManifest {
   textures: Record<string, string>;
@@ -48,7 +49,7 @@ export class AssetManager implements IGameModule {
 
   async loadManifest(): Promise<void> {
     try {
-      const response = await fetch('/assets/manifest.json');
+      const response = await fetch(resolveAssetUrl('manifest.json'));
       if (response.ok) {
         this.manifest = await response.json();
       } else {
@@ -125,7 +126,7 @@ export class AssetManager implements IGameModule {
   }
 
   private async loadAsset(key: string, url: string, type: string): Promise<any> {
-    const response = await fetch(url);
+    const response = await fetch(resolveAssetUrl(url));
     if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
 
     switch (type) {

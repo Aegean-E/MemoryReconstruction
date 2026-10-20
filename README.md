@@ -49,7 +49,7 @@ Memory Reconstruction is a 2.5D action-roguelike metroidvania where you play as 
 
 ### Key Features
 
-- **2.5D Graphics**: Hand-painted sprites with dynamic 3D lighting, parallax depth, and post-processing
+- **2.5D Graphics**: Hand-painted Memory Light sprites, biome tile atlases, parallax backdrops, dynamic lighting and post-processing
 - **Adaptive Music**: Vertical layering system that responds to combat intensity
 - **Roguelike Runs**: Procedural worlds with meta-progression across runs
 - **AI-Native Architecture**: Built for AI testing, RLM compatibility, and deterministic simulation
@@ -69,6 +69,9 @@ npm test
 
 # Build
 npm run build
+
+# Regenerate the themed sprites, tilesets, UI and atlas metadata
+python scripts/generate_art_assets.py
 ```
 
 ## Controls
@@ -123,7 +126,7 @@ Adaptive orchestral/ambient hybrid with vertical layering (intensity) and horizo
 src/
 ├── core/       # EventBus, ModuleRegistry, ConfigManager, GameApplication
 ├── engine/     # AssetManager, InputSystem
-├── graphics/   # RenderSystem, shaders
+├── graphics/   # RenderSystem, ActorRenderer, atlases, HUD
 ├── audio/      # AudioSystem
 ├── gameplay/   # WorldSystem, PlayerSystem, CombatSystem
 ├── ai/         # AISystem (RLM, agents, observation)

@@ -14,6 +14,7 @@ import { EventBus } from '@core/EventBus';
 import { ConfigManager, ConfigSchemas } from '@core/ConfigManager';
 import { AssetManager } from '@engine/AssetManager';
 import { RenderSystem } from '@graphics/RenderSystem';
+import { ActorRenderer } from '@graphics/ActorRenderer';
 import { InputSystem } from '@engine/InputSystem';
 import { AudioSystem } from '@audio/AudioSystem';
 import { WorldSystem } from '@gameplay/WorldSystem';
@@ -63,82 +64,23 @@ async function main(): Promise<void> {
 
     // Create module registry (for RLM state management)
     const moduleRegistry = new ModuleRegistry(eventBus);
-    const moduleContext = {
-      eventBus,
-      config: {},
-      sharedState: new Map<string, any>(),
-    };
 
-    updateLoading(15, 'Loading assets...');
+    updateLoading(15, 'Loading memory fragments...');
 
-    // Initialize asset manager
+    // Create all module instances. Initialization happens through the registry
+    // so the registry owns the initialized flags and the update loop.
     const assetManager = new AssetManager(eventBus);
-    await assetManager.initialize(moduleContext);
-    moduleContext.sharedState.set('assetManager', assetManager);
-
-    updateLoading(30, 'Setting up graphics...');
-
-    // Initialize render system
     const renderSystem = new RenderSystem(eventBus, configManager.get('graphics'));
-    await renderSystem.initialize(moduleContext);
-    moduleContext.sharedState.set('renderSystem', renderSystem);
-
-    updateLoading(45, 'Initializing audio...');
-
-    // Initialize audio system
     const audioSystem = new AudioSystem(eventBus, configManager.get('audio'));
-    await audioSystem.initialize(moduleContext);
-    moduleContext.sharedState.set('audioSystem', audioSystem);
-
-    updateLoading(55, 'Setting up input...');
-
-    // Initialize input system
     const inputSystem = new InputSystem(eventBus);
-    await inputSystem.initialize(moduleContext);
-    moduleContext.sharedState.set('inputSystem', inputSystem);
-
-    updateLoading(65, 'Creating world...');
-
-    // Initialize gameplay systems
     const worldSystem = new WorldSystem(eventBus, configManager.get('gameplay'));
-    await worldSystem.initialize(moduleContext);
-    moduleContext.sharedState.set('worldSystem', worldSystem);
-
     const playerSystem = new PlayerSystem(eventBus, configManager.get('gameplay'));
-    await playerSystem.initialize(moduleContext);
-    moduleContext.sharedState.set('playerSystem', playerSystem);
-
     const combatSystem = new CombatSystem(eventBus, configManager.get('gameplay'));
-    await combatSystem.initialize(moduleContext);
-    moduleContext.sharedState.set('combatSystem', combatSystem);
-
-    updateLoading(80, 'Initializing AI layer...');
-
-    // Initialize AI system (for RLM compatibility and testing)
+    const actorRenderer = new ActorRenderer(eventBus);
     const aiSystem = new AISystem(eventBus, configManager.get('ai'));
-    await aiSystem.initialize(moduleContext);
-    moduleContext.sharedState.set('aiSystem', aiSystem);
-
-    updateLoading(90, 'Setting up testing harness...');
-
-    // Initialize testing harness (for AI testability)
     const testingHarness = new TestingHarness(eventBus, moduleRegistry);
-    await testingHarness.initialize(moduleContext);
-    moduleContext.sharedState.set('testingHarness', testingHarness);
 
-    updateLoading(95, 'Registering modules...');
-
-    // Register all modules for RLM state management
-    moduleRegistry.register(renderSystem);
-    moduleRegistry.register(audioSystem);
-    moduleRegistry.register(inputSystem);
-    moduleRegistry.register(worldSystem);
-    moduleRegistry.register(playerSystem);
-    moduleRegistry.register(combatSystem);
-    moduleRegistry.register(aiSystem);
-    moduleRegistry.register(testingHarness);
-
-    updateLoading(100, 'Starting game...');
+    updateLoading(35, 'Reconstructing the world...');
 
     // Create and start the game application
     const game = new GameApplication({
@@ -155,6 +97,40 @@ async function main(): Promise<void> {
       aiSystem,
       testingHarness,
     });
+
+    // Publish shared dependencies before initialization.
+    moduleRegistry.setSharedState('gameApplication', game);
+    moduleRegistry.setSharedState('moduleRegistry', moduleRegistry);
+    moduleRegistry.setSharedState('assetManager', assetManager);
+    moduleRegistry.setSharedState('renderSystem', renderSystem);
+    moduleRegistry.setSharedState('audioSystem', audioSystem);
+    moduleRegistry.setSharedState('inputSystem', inputSystem);
+    moduleRegistry.setSharedState('worldSystem', worldSystem);
+    moduleRegistry.setSharedState('playerSystem', playerSystem);
+    moduleRegistry.setSharedState('combatSystem', combatSystem);
+    moduleRegistry.setSharedState('actorRenderer', actorRenderer);
+    moduleRegistry.setSharedState('aiSystem', aiSystem);
+    moduleRegistry.setSharedState('testingHarness', testingHarness);
+
+    moduleRegistry.register(assetManager);
+    moduleRegistry.register(renderSystem);
+    moduleRegistry.register(audioSystem);
+    moduleRegistry.register(inputSystem);
+    moduleRegistry.register(worldSystem);
+    moduleRegistry.register(playerSystem);
+    moduleRegistry.register(combatSystem);
+    moduleRegistry.register(actorRenderer);
+    moduleRegistry.register(aiSystem);
+    moduleRegistry.register(testingHarness);
+
+    await moduleRegistry.initializeAll({
+      graphics: configManager.get('graphics'),
+      audio: configManager.get('audio'),
+      gameplay: configManager.get('gameplay'),
+      ai: configManager.get('ai'),
+    });
+
+    updateLoading(95, 'Starting game...');
 
     // Hide loading screen
     loadingScreen.classList.add('hidden');

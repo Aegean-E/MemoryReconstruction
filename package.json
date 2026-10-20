@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "ai:benchmark": "node scripts/ai-benchmark.js",
     "ai:replay": "node scripts/ai-replay.js",
-    "generate:assets": "node scripts/generate-assets.js"
+    "generate:assets": "node scripts/generate-assets.js",
+    "generate:art": "python scripts/generate_art_assets.py"
   },
   "dependencies": {
     "@pixi/filter-bloom": "^5.1.1",

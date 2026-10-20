@@ -1,11 +1,11 @@
 /**
  * Module Registry - Central module management for RLM compatibility
- * 
+ *
  * Manages module lifecycle, dependencies, and state serialization.
  * Each module declares its token budget for RLM context management.
  */
 
-import { EventBus } from './EventBus';
+import type { EventBus } from './EventBus';
 
 export interface ModuleState {
   version: string;
@@ -24,8 +24,8 @@ export interface IGameModule {
   readonly name: string;
   readonly version: string;
   readonly dependencies: string[];
-  readonly tokenBudget: number;  // Estimated tokens for RLM context
-  
+  readonly tokenBudget: number; // Estimated tokens for RLM context
+
   initialize(context: ModuleContext): Promise<void>;
   update(deltaTime: number): void;
   shutdown(): Promise<void>;
@@ -61,7 +61,7 @@ export class ModuleRegistry {
     if (this.modules.has(module.name)) {
       throw new Error(`Module ${module.name} already registered`);
     }
-    
+
     this.modules.set(module.name, module);
     this.metadata.set(module.name, {
       name: module.name,
@@ -69,10 +69,10 @@ export class ModuleRegistry {
       dependencies: module.dependencies,
       tokenBudget: module.tokenBudget,
       initialized: false,
-      loadOrder: this.loadOrder.length
+      loadOrder: this.loadOrder.length,
     });
     this.loadOrder.push(module.name);
-    
+
     this.eventBus.emit('module:registered', { name: module.name });
   }
 
@@ -88,25 +88,25 @@ export class ModuleRegistry {
     try {
       // Topological sort by dependencies
       const sorted = this.topologicalSort();
-      
+
       for (const name of sorted) {
         const module = this.modules.get(name)!;
         const meta = this.metadata.get(name)!;
-        
+
         await this.eventBus.emit('module:initializing', { name });
-        
+
         const context: ModuleContext = {
           eventBus: this.eventBus,
           config: config[name] ?? {},
-          sharedState: this.sharedState
+          sharedState: this.sharedState,
         };
-        
+
         await module.initialize(context);
-        
+
         meta.initialized = true;
         await this.eventBus.emit('module:initialized', { name });
       }
-      
+
       await this.eventBus.emit('modules:allInitialized', {});
     } finally {
       this.initializing = false;
@@ -232,7 +232,7 @@ export class ModuleRegistry {
         throw new Error(`Circular dependency detected: ${name}`);
       }
       if (visited.has(name)) return;
-      
+
       visiting.add(name);
       const meta = this.metadata.get(name);
       if (meta) {

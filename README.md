@@ -25,6 +25,7 @@
 ```text
 MemoryReconstruction/
 ├── .aikit/                   <- this project's memory: record, ledger, decisions
+├── .gitattributes            <- LF normalization and binary asset rules
 ├── .gitignore                <- transient AIKit state excluded
 ├── .prettierrc
 ├── PROJECT_PRINCIPLES.md

@@ -119,6 +119,7 @@
 ### CombatSystem (`src/gameplay/CombatSystem.ts`)
 - **Entities**: Full stat blocks, AI state machines, hitboxes, status effects
 - **Damage**: Physical/magical/true, armor/resistance, crit, knockback
+- **Attack Intents**: Radial attack intent resolution (`combat:attack`) decoupled from resolved damage events (`combat:damage`)
 - **Status Effects**: Stun, freeze, burn, poison, slow, silence
 - **Projectiles**: Homing, piercing, lifetime, hitbox collision
 - **AI Behaviors**: Idle, patrol, chase, attack, flee
@@ -173,10 +174,11 @@ InputSystem detects attack key
   → EventBus.emit(PLAYER_ATTACK)
   → PlayerSystem.onAttack()
     → Checks cooldown, mana
-    → EventBus.emit(COMBAT_HIT, { damage, crit, knockback })
-  → CombatSystem.onHit()
-    → Resolves target (player/enemy)
-    → Calculates damage, applies status
+    → EventBus.emit(COMBAT_ATTACK, { sourceId, x, y, radius, damage, critical, knockbackForce })
+  → CombatSystem.onAttackIntent()
+    → Radial query resolves live entities in range
+    → Calculates damage with crit/armor, applies knockback
+    → EventBus.emit(COMBAT_DAMAGE, DamageEvent)
     → EventBus.emit(COMBAT_KILL) if dead
   → RenderSystem plays effect
   → AudioSystem plays SFX

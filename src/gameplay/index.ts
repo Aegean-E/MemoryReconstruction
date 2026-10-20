@@ -34,6 +34,7 @@ export {
   type AIState,
   type Hitbox,
   type DamageEvent,
+  type AttackIntent,
   type StatusEffect,
   type Projectile,
 } from './CombatSystem';

@@ -224,7 +224,9 @@ export const GameEvents = {
   PLAYER_STAT_CHANGE: 'player:statChange',
 
   // Combat
+  COMBAT_ATTACK: 'combat:attack',
   COMBAT_HIT: 'combat:hit',
+  COMBAT_DAMAGE: 'combat:damage',
   COMBAT_KILL: 'combat:kill',
   COMBAT_CRITICAL: 'combat:critical',
   COMBAT_DODGE: 'combat:dodge',

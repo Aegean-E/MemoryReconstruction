@@ -105,6 +105,18 @@ export interface StatusEffect {
   sourceId: string;
 }
 
+export interface AttackIntent {
+  sourceId: string;
+  x: number;
+  y: number;
+  radius: number;
+  damage: number;
+  critical: boolean;
+  knockbackForce?: number;
+  statusEffects?: StatusEffect[];
+  ultimate?: boolean;
+}
+
 export interface Projectile {
   id: string;
   sourceId: string;
@@ -167,6 +179,7 @@ export class CombatSystem implements IGameModule {
     this.playerSystem = context.sharedState.get('playerSystem');
 
     // Event listeners
+    this.eventBus.on(GameEvents.COMBAT_ATTACK, (data: any) => this.onAttackIntent(data));
     this.eventBus.on(GameEvents.COMBAT_HIT, (data: any) => this.onHit(data));
     this.eventBus.on('entity:spawn', (data: any) => this.spawnEntity(data));
     this.eventBus.on('entity:despawn', (data: any) => this.despawnEntity(data.id));
@@ -565,6 +578,43 @@ export class CombatSystem implements IGameModule {
 
   // Event Handlers
 
+  private onAttackIntent(data: AttackIntent): void {
+    if (!data || !Number.isFinite(data.damage) || data.damage <= 0) return;
+
+    const sourceId = data.sourceId || 'player';
+    const radius = Number.isFinite(data.radius) && data.radius > 0 ? data.radius : 60;
+    const knockbackForce =
+      typeof data.knockbackForce === 'number' && Number.isFinite(data.knockbackForce)
+        ? data.knockbackForce
+        : this.config.combat.knockbackForce;
+    const statusEffects = data.statusEffects ?? [];
+
+    for (const target of this.entities.values()) {
+      if (!target.state.alive) continue;
+
+      const dx = target.position.x - data.x;
+      const dy = target.position.y - data.y;
+      const distanceSquared = dx * dx + dy * dy;
+      if (distanceSquared > radius * radius) continue;
+
+      const distance = Math.sqrt(distanceSquared) || 1;
+      const knockback = {
+        x: (dx / distance) * knockbackForce,
+        y: (dy / distance) * knockbackForce * 0.5,
+      };
+
+      this.dealDamage(
+        target.id,
+        sourceId,
+        data.damage,
+        'physical',
+        data.critical,
+        knockback,
+        statusEffects
+      );
+    }
+  }
+
   private onHit(data: any): void {
     const { sourceId, targetId, damage, critical, knockback, statusEffects } = data;
 
@@ -681,14 +731,18 @@ export class CombatSystem implements IGameModule {
       this.onEntityDeath(target, sourceId);
     }
 
-    // Emit event
-    this.eventBus.emit(GameEvents.COMBAT_HIT, {
-      targetId,
+    // Emit the resolved damage event. combat:hit stays the incoming targeted
+    // input, so resolving damage cannot feed back into onHit.
+    const damageEvent: DamageEvent = {
       sourceId,
-      damage: finalDamage,
-      critical,
+      targetId,
+      amount: finalDamage,
       type,
-    });
+      critical,
+      knockback,
+      statusEffects,
+    };
+    this.eventBus.emit(GameEvents.COMBAT_DAMAGE, damageEvent);
   }
 
   private applyStatusEffect(data: { targetId: string; effect: StatusEffect }): void {

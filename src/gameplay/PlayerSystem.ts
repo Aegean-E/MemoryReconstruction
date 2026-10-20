@@ -457,18 +457,20 @@ export class PlayerSystem implements IGameModule {
     this.comboCount++;
     this.lastAttackTime = Date.now();
 
-    // Determine attack properties
+    // The combat system applies the critical multiplier, so the intent carries
+    // base damage plus the crit flag instead of a pre-multiplied value.
     const isCrit = this.rng() < this.stats.critChance;
-    const damage =
-      this.stats.damage * (isCrit ? this.stats.critMultiplier : 1) * (1 + this.comboCount * 0.1);
+    const damage = this.stats.damage * (1 + this.comboCount * 0.1);
 
-    this.eventBus.emit(GameEvents.COMBAT_HIT, {
+    this.eventBus.emit(GameEvents.COMBAT_ATTACK, {
+      sourceId: 'player',
       x: this.state.position.x + this.state.facing * 30,
       y: this.state.position.y,
+      radius: 60,
       damage,
       critical: isCrit,
-      combo: this.comboCount,
-      knockback: this.config.combat.knockbackForce * this.state.facing,
+      knockbackForce: this.config.combat.knockbackForce,
+      statusEffects: [],
     });
 
     // Reset attack state after short delay
@@ -657,12 +659,15 @@ export class PlayerSystem implements IGameModule {
       ability.currentCooldown = 0;
     }
 
-    this.eventBus.emit(GameEvents.COMBAT_HIT, {
+    this.eventBus.emit(GameEvents.COMBAT_ATTACK, {
+      sourceId: 'player',
       x: this.state.position.x,
       y: this.state.position.y,
+      radius: 200,
       damage: this.stats.damage * 10,
       critical: true,
-      radius: 200,
+      knockbackForce: this.config.combat.knockbackForce * 2,
+      statusEffects: [],
       ultimate: true,
     });
 

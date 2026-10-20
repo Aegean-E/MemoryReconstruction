@@ -101,4 +101,3 @@ near-black with cyan rifts; the sanctuary is ivory and gold.
 
 - `npm test` checks that the atlas references real generated files.
 - `npm run build` copies `assets/` into `dist/` and bundles the atlas metadata.
-- `docs/performance_guidelines.md` covers frame-budget expectations.

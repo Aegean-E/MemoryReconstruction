@@ -1,12 +1,12 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "readme-license-tree",
+    "task_id": "cleanup-stale-scaffolding",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1792509527.3332365,
-    "completed_at": 1792509541.3796043
+    "updated_at": 1792510857.4288118,
+    "completed_at": 1792510859.739986
   },
   "checkpoints": [
     {
@@ -144,6 +144,41 @@
       "status": "completed",
       "timestamp": 1792509541.379606,
       "timestamp_str": "2026-10-20 18:19:01"
+    },
+    {
+      "task_id": "cleanup-stale-scaffolding",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/1] move the four stale untracked scaffold files to a timestamped temp backup, remove the dangling performance-guidelines reference, regenerate the codebase map, rerun the 7 gates, commit the docs, then strict-verify and push",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792510822.9874206,
+      "timestamp_str": "2026-10-20 18:40:22",
+      "impact_assessment": {
+        "why": "four untracked files from the initial Stellar Drift scaffold block check --strict, and docs/Graphics.md and .aikit/codebase_map.md point at them even though they are not part of the delivery",
+        "benefits": "the project tree becomes clean and delivery-ready, the pending README/LICENSE commit can be verified and pushed, and the docs and AST map stop referencing a broken Python benchmark that belongs to another prototype",
+        "risks": "contract: documentation and generated map only, no runtime or gameplay behaviour changes; dependency: none; concurrency: the untracked files may be user work, so they are moved to a timestamped temp backup instead of deleted; state: none beyond the generated map and ledger",
+        "mitigation": "back up all four paths before touching them, grep every reference, rerun python aikit.py check MemoryReconstruction to 7/7, then stage only the tracked docs and map"
+      }
+    },
+    {
+      "task_id": "cleanup-stale-scaffolding",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "checklists: passed; 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); four stale untracked scaffold paths moved to a temp backup, the dangling performance-guidelines reference removed, and the codebase map regenerated",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792510857.4288118,
+      "timestamp_str": "2026-10-20 18:40:57"
+    },
+    {
+      "task_id": "cleanup-stale-scaffolding",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'cleanup-stale-scaffolding' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792510859.7399871,
+      "timestamp_str": "2026-10-20 18:40:59"
     }
   ]
 }

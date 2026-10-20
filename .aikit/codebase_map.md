@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `5`
+- **Total Python Modules**: `4`
 - **Total Classes**: `0`
-- **Total Top-Level Functions**: `40`
+- **Total Top-Level Functions**: `38`
 - **Total Class Methods**: `0`
-- **Total Source Lines**: `1637`
+- **Total Source Lines**: `1591`
 
 ---
 
@@ -87,16 +87,5 @@
 
 **Functions:**
 - `def main(argv)`
-
----
-
-### [`src/tools/performance_benchmark.py`](src/tools/performance_benchmark.py)
-> *Performance benchmark for Stellar Drift.*
-
-**Size**: `46` lines (`1355` bytes)
-
-**Functions:**
-- `def bench(name, fn)`
-- `def main()`
 
 ---

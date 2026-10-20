@@ -39,6 +39,8 @@ MemoryReconstruction/
 ├── package.json
 ├── scripts/
 ├── src/
+├── start.bat
+├── start.sh
 ├── tests/
 ├── tsconfig.json
 ├── tsconfig.node.json
@@ -61,11 +63,12 @@ Memory Reconstruction is a 2.5D action-roguelike metroidvania where you play as 
 ## Quick Start
 
 ```bash
-# Install
-npm install
+# Zero-friction launcher
+start.bat          # on Windows
+./start.sh         # on Linux/macOS
 
-# Develop
-npm run dev
+# Or via npm
+npm start          # or npm run dev
 
 # Test
 npm test

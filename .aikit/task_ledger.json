@@ -3,20 +3,12 @@
   "active_task": {
     "task_id": "engine-ux-gameplay-systems",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1792515833.4283457
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1792515833.4283457,
+    "completed_at": 1792515873.771683
   },
   "checkpoints": [
-    {
-      "task_id": "green-gates",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'green-gates' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792440656.6548042,
-      "timestamp_str": "2026-10-19 23:10:56"
-    },
     {
       "task_id": "memory-light-art",
       "phase": "phase 4",
@@ -242,6 +234,15 @@
       "status": "in_progress",
       "timestamp": 1792515833.4283457,
       "timestamp_str": "2026-10-20 20:03:53"
+    },
+    {
+      "task_id": "engine-ux-gameplay-systems",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'engine-ux-gameplay-systems' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792515873.7716846,
+      "timestamp_str": "2026-10-20 20:04:33"
     }
   ]
 }

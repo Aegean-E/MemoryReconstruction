@@ -176,7 +176,7 @@ await window.__GAME__.deserialize(state);
 
 ## License
 
-MIT License - See LICENSE file
+AGPLv3 - see [LICENSE](LICENSE).
 
 ## Credits
 

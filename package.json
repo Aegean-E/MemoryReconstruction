@@ -2,6 +2,7 @@
   "name": "memory-reconstruction",
   "version": "0.1.0",
   "description": "Action-Roguelike Metroidvania - Memory Reconstruction",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",

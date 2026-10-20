@@ -580,6 +580,8 @@ export class WorldSystem implements IGameModule {
   /**
    * The fill matrix that maps a tile's local rect onto the atlas frame's UV rect, so a batched
    * texture fill samples exactly one frame of a multi-tile tileset texture.
+   * Assumes the atlas frame UV rect is axis-aligned (no rotation/shear). If the atlas pipeline
+   * changes to support rotated frames, recompute the matrix with a full 3×3 or 4×4 texture transform.
    */
   private tileFillMatrix(texture: PIXI.Texture): PIXI.Matrix {
     const uvs = texture.uvs;

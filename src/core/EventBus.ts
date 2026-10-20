@@ -24,6 +24,8 @@ export class EventBus {
   private handlers = new Map<string, Set<EventHandler>>();
   private middleware: Array<(event: string, data: any, meta: EventMetadata) => void> = [];
   private eventHistory: Array<{ event: string; data: any; meta: EventMetadata }> = [];
+  private historyIndex = 0;
+  private isHistoryFull = false;
   private maxHistorySize = 1000;
   private traceCounter = 0;
 
@@ -61,6 +63,16 @@ export class EventBus {
     return handlers.delete(handler);
   }
 
+  private recordHistory(record: { event: string; data: any; meta: EventMetadata }): void {
+    if (this.eventHistory.length < this.maxHistorySize) {
+      this.eventHistory.push(record);
+    } else {
+      this.eventHistory[this.historyIndex] = record;
+      this.historyIndex = (this.historyIndex + 1) % this.maxHistorySize;
+      this.isHistoryFull = true;
+    }
+  }
+
   /**
    * Emit an event to all subscribers
    */
@@ -73,11 +85,8 @@ export class EventBus {
       mw(event, data, meta);
     }
 
-    // Record history (for debugging/AI inspection)
-    this.eventHistory.push({ event, data, meta });
-    if (this.eventHistory.length > this.maxHistorySize) {
-      this.eventHistory.shift();
-    }
+    // Record history via O(1) ring buffer
+    this.recordHistory({ event, data, meta });
 
     // Call handlers
     const handlers = this.handlers.get(event);
@@ -111,10 +120,7 @@ export class EventBus {
     const traceId = `evt_${++this.traceCounter}_${Date.now()}`;
     const meta: EventMetadata = { timestamp: Date.now(), source, traceId };
 
-    this.eventHistory.push({ event, data, meta });
-    if (this.eventHistory.length > this.maxHistorySize) {
-      this.eventHistory.shift();
-    }
+    this.recordHistory({ event, data, meta });
 
     const handlers = this.handlers.get(event);
     if (handlers) {
@@ -143,7 +149,14 @@ export class EventBus {
     since?: number;
     limit?: number;
   }): Array<{ event: string; data: any; meta: EventMetadata }> {
-    let history = [...this.eventHistory];
+    let history: Array<{ event: string; data: any; meta: EventMetadata }>;
+    if (!this.isHistoryFull) {
+      history = [...this.eventHistory];
+    } else {
+      history = this.eventHistory
+        .slice(this.historyIndex)
+        .concat(this.eventHistory.slice(0, this.historyIndex));
+    }
 
     if (filter?.event) {
       history = history.filter((h) => h.event === filter.event);
@@ -163,6 +176,8 @@ export class EventBus {
    */
   clearHistory(): void {
     this.eventHistory = [];
+    this.historyIndex = 0;
+    this.isHistoryFull = false;
   }
 
   /**

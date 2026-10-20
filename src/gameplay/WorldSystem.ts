@@ -86,12 +86,15 @@ export class WorldSystem implements IGameModule {
   private chunkSize: number;
   private viewDistance: number;
 
+  // Streaming checkpoint: chunk streaming only changes when the player's chunk changes.
+  private lastChunkX: number | null = null;
+  private lastChunkY: number | null = null;
+
   // Biomes
   private biomes: BiomeConfig[] = [];
   private currentBiome: BiomeType = 'ruins';
 
   // Generation
-  private noiseCache = new Map<string, number>();
   private generationQueue: Array<{ x: number; y: number; priority: number }> = [];
   private generating = false;
 
@@ -224,6 +227,13 @@ export class WorldSystem implements IGameModule {
   private onPlayerMove(data: { x: number; y: number }): void {
     const chunkX = Math.floor(data.x / this.chunkSize);
     const chunkY = Math.floor(data.y / this.chunkSize);
+
+    // The set of chunks to stream depends only on the player's chunk, so a position update that
+    // stays inside the same chunk does no work. This removes the per-frame chunk loop that made
+    // corner navigation stutter.
+    if (chunkX === this.lastChunkX && chunkY === this.lastChunkY) return;
+    this.lastChunkX = chunkX;
+    this.lastChunkY = chunkY;
 
     // Load chunks around player
     const chunks = this.getChunksInRadius(chunkX, chunkY, this.viewDistance);
@@ -497,14 +507,24 @@ export class WorldSystem implements IGameModule {
     const chunk = this.chunks.get(key);
     if (!chunk) return true; // Not generated yet, assume valid
 
-    const tx = Math.floor((x % this.chunkSize) / TILE_SIZE);
-    const ty = Math.floor((y % this.chunkSize) / TILE_SIZE);
+    const { tx, ty } = this.tileIndexWithinChunk(x, y);
 
     if (ty < 0 || ty >= chunk.tiles.length) return false;
-    if (tx < 0 || tx >= chunk.tiles[0].length) return false;
+    const row = chunk.tiles[ty];
+    if (!row || tx < 0 || tx >= row.length) return false;
 
-    const tile = chunk.tiles[ty][tx];
+    const tile = row[tx];
     return tile.type === 'floor' || tile.type === 'platform';
+  }
+
+  /**
+   * Local tile indices for a world coordinate. Uses a floored modulo so a negative coordinate in a
+   * negative chunk maps to the correct tile instead of a negative index (`-5 % 512` is `-5` in JS).
+   */
+  private tileIndexWithinChunk(worldX: number, worldY: number): { tx: number; ty: number } {
+    const localX = worldX - Math.floor(worldX / this.chunkSize) * this.chunkSize;
+    const localY = worldY - Math.floor(worldY / this.chunkSize) * this.chunkSize;
+    return { tx: Math.floor(localX / TILE_SIZE), ty: Math.floor(localY / TILE_SIZE) };
   }
 
   private renderChunk(chunk: ChunkData): void {
@@ -513,9 +533,11 @@ export class WorldSystem implements IGameModule {
     const layer = this.renderSystem.getLayer('background');
     if (!layer) return;
 
-    // Create tile graphics (simplified - would use tilemap in production)
-    const container = new PIXI.Container();
-    container.label = `chunk_${chunk.x}_${chunk.y}`;
+    // Batch every tile of the chunk into one Graphics: a 512px chunk is 256 tiles, so a single
+    // display object instead of 256 keeps the scene graph roughly 250x smaller and removes the
+    // per-tile object churn that stalled the frame when chunks streamed in.
+    const gfx = new PIXI.Graphics();
+    gfx.label = `chunk_${chunk.x}_${chunk.y}`;
 
     const biomeConfig = this.biomes.find((b) => b.name === chunk.biome)!;
 
@@ -524,36 +546,48 @@ export class WorldSystem implements IGameModule {
         const tile = chunk.tiles[ty][tx];
         if (tile.type === 'empty') continue;
 
+        const px = tx * TILE_SIZE;
+        const py = ty * TILE_SIZE;
         const texture = this.renderSystem.getTileTexture(chunk.biome, tile.type, tile.variant);
+
         if (texture) {
-          const sprite = new PIXI.Sprite(texture);
-          sprite.position.set(tx * TILE_SIZE, ty * TILE_SIZE);
-          sprite.width = TILE_SIZE;
-          sprite.height = TILE_SIZE;
-          container.addChild(sprite);
+          gfx.rect(px, py, TILE_SIZE, TILE_SIZE);
+          // 'local' fits the frame to the tile; the matrix maps the atlas frame's UV rect onto the
+          // tile so a batched texture fill shows the right tile instead of the whole atlas page.
+          gfx.fill({ texture, textureSpace: 'local', matrix: this.tileFillMatrix(texture) });
           continue;
         }
 
-        const gfx = new PIXI.Graphics();
         const color = this.getTileColor(tile, biomeConfig);
-        gfx.rect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        gfx.rect(px, py, TILE_SIZE, TILE_SIZE);
         gfx.fill({ color, alpha: tile.type === 'hazard' ? 0.6 : 1 });
 
         if (tile.properties.solid) {
-          gfx.rect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          gfx.rect(px, py, TILE_SIZE, TILE_SIZE);
           gfx.stroke({ color: 0x000000, width: 1, alpha: 0.3 });
         }
-
-        container.addChild(gfx);
       }
     }
 
-    container.position.set(chunk.x * this.chunkSize, chunk.y * this.chunkSize);
-    layer.addChild(container);
+    gfx.position.set(chunk.x * this.chunkSize, chunk.y * this.chunkSize);
+    layer.addChild(gfx);
   }
 
   private getTileColor(tile: TileData, biome: BiomeConfig): number {
     return resolveTileColor(tile, biome);
+  }
+
+  /**
+   * The fill matrix that maps a tile's local rect onto the atlas frame's UV rect, so a batched
+   * texture fill samples exactly one frame of a multi-tile tileset texture.
+   */
+  private tileFillMatrix(texture: PIXI.Texture): PIXI.Matrix {
+    const uvs = texture.uvs;
+    const minX = Math.min(uvs.x0, uvs.x1, uvs.x2, uvs.x3);
+    const minY = Math.min(uvs.y0, uvs.y1, uvs.y2, uvs.y3);
+    const width = Math.max(uvs.x0, uvs.x1, uvs.x2, uvs.x3) - minX;
+    const height = Math.max(uvs.y0, uvs.y1, uvs.y2, uvs.y3) - minY;
+    return new PIXI.Matrix(1 / width, 0, 0, 1 / height, -minX / width, -minY / height);
   }
 
   private unloadDistantChunks(playerChunkX: number, playerChunkY: number): void {
@@ -590,14 +624,11 @@ export class WorldSystem implements IGameModule {
   }
 
   private getNoise(x: number, y: number, seed: number): number {
-    const key = `${x.toFixed(3)},${y.toFixed(3)},${seed}`;
-    if (this.noiseCache.has(key)) return this.noiseCache.get(key)!;
-
-    // Simple deterministic noise (Perlin-like)
+    // Integer hash computed directly: the old Map<string> cache allocated a fresh key string per
+    // call and grew without bound for the lifetime of the world. The hash is deterministic, so
+    // caching bought nothing but leaked memory; the noise stream is unchanged.
     const n = this.hash(x * 1000 + seed, y * 1000 + seed);
-    const value = (n / 0x100000000) * 2 - 1;
-    this.noiseCache.set(key, value);
-    return value;
+    return (n / 0x100000000) * 2 - 1;
   }
 
   private hash(x: number, y: number): number {
@@ -620,13 +651,13 @@ export class WorldSystem implements IGameModule {
     const chunk = this.chunks.get(`${chunkX},${chunkY}`);
     if (!chunk) return null;
 
-    const tx = Math.floor((worldX % this.chunkSize) / TILE_SIZE);
-    const ty = Math.floor((worldY % this.chunkSize) / TILE_SIZE);
+    const { tx, ty } = this.tileIndexWithinChunk(worldX, worldY);
 
     if (ty < 0 || ty >= chunk.tiles.length) return null;
-    if (tx < 0 || tx >= chunk.tiles[0].length) return null;
+    const row = chunk.tiles[ty];
+    if (!row || tx < 0 || tx >= row.length) return null;
 
-    return chunk.tiles[ty][tx];
+    return row[tx];
   }
 
   isSolidAt(worldX: number, worldY: number): boolean {

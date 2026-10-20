@@ -59,6 +59,7 @@ Memory Reconstruction is a 2.5D action-roguelike metroidvania where you play as 
 - **Roguelike Runs**: Procedural worlds with meta-progression across runs
 - **AI-Native Architecture**: Built for AI testing, RLM compatibility, and deterministic simulation
 - **Modular Design**: Plugin architecture for easy extension
+- **Smooth Streaming**: batched per-chunk tile graphics and chunk-crossing streaming keep corner navigation at 60fps
 
 ## Quick Start
 

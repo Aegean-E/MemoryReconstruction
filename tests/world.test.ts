@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import * as PIXI from 'pixi.js';
 import { EventBus } from '@core/EventBus';
 import { ConfigSchemas } from '@core/ConfigManager';
 import { WorldSystem } from '@gameplay/WorldSystem';
@@ -88,5 +89,116 @@ describe('WorldSystem chunk streaming', () => {
     (world as any).ensureChunk(0, 0);
 
     expect(layer.addChild).not.toHaveBeenCalled();
+  });
+
+  const makeFullChunk = (x = 0, y = 0): ChunkData => ({
+    x,
+    y,
+    biome: 'ruins',
+    tiles: Array.from({ length: 16 }, () =>
+      Array.from({ length: 16 }, () => ({
+        type: 'floor' as const,
+        variant: 0,
+        height: 0,
+        properties: { solid: true },
+      }))
+    ),
+    entities: [],
+    generated: true,
+    timestamp: 0,
+  });
+
+  const makeMarkerChunk = (x: number, y: number, solidTx: number, solidTy: number): ChunkData => ({
+    x,
+    y,
+    biome: 'ruins',
+    tiles: Array.from({ length: 16 }, (_row, ty) =>
+      Array.from({ length: 16 }, (_col, tx) => {
+        const solid = tx === solidTx && ty === solidTy;
+        return {
+          type: solid ? ('floor' as const) : ('empty' as const),
+          variant: 0,
+          height: 0,
+          properties: { solid },
+        };
+      })
+    ),
+    entities: [],
+    generated: true,
+    timestamp: 0,
+  });
+
+  it('renders a full chunk as a single Graphics display object', () => {
+    const { world, layer, added } = makeWorld();
+    (world as any).renderChunk(makeFullChunk(0, 0));
+
+    expect(layer.addChild).toHaveBeenCalledTimes(1);
+    expect(added).toHaveLength(1);
+    expect(added[0]).toBeInstanceOf(PIXI.Graphics);
+    expect(added[0].label).toBe('chunk_0_0');
+  });
+
+  it('still batches into one object when the atlas provides textures', () => {
+    const { world, layer, added } = makeWorld();
+    (world as any).renderSystem.getTileTexture = () => PIXI.Texture.WHITE;
+    (world as any).renderChunk(makeFullChunk(0, 0));
+
+    expect(layer.addChild).toHaveBeenCalledTimes(1);
+    expect(added).toHaveLength(1);
+    expect(added[0]).toBeInstanceOf(PIXI.Graphics);
+  });
+
+  it('maps a batched texture fill onto the atlas frame, not the whole page', () => {
+    const { world } = makeWorld();
+    const source = new PIXI.TextureSource({ width: 128, height: 288, resolution: 1 });
+    const frame = new PIXI.Texture({ source, frame: new PIXI.Rectangle(32, 0, 32, 32) });
+
+    const matrix = (world as any).tileFillMatrix(frame) as PIXI.Matrix;
+    const inverse = matrix.clone().invert();
+
+    expect(inverse.a).toBeCloseTo(0.25, 5);
+    expect(inverse.d).toBeCloseTo(32 / 288, 5);
+    expect(inverse.tx).toBeCloseTo(0.25, 5);
+    expect(inverse.ty).toBeCloseTo(0, 5);
+  });
+
+  it('resolves tiles in negative chunks with a floored modulo', () => {
+    const { world } = makeWorld();
+    (world as any).chunks.set('-1,-1', makeMarkerChunk(-1, -1, 15, 15));
+
+    expect(world.getTileAt(-1, -1)?.type).toBe('floor');
+    expect(world.isSolidAt(-1, -1)).toBe(true);
+    expect(world.getTileAt(-32, -32)?.type).toBe('floor');
+    expect(world.getTileAt(-512, -512)?.type).toBe('empty');
+    expect(world.isSolidAt(-500, -500)).toBe(false);
+    expect(world.getTileAt(-2000, -2000)).toBeNull();
+  });
+
+  it('only streams chunks when the player crosses a chunk boundary', () => {
+    const { world } = makeWorld();
+    const ensure = vi.fn();
+    const unload = vi.fn();
+    (world as any).ensureChunk = ensure;
+    (world as any).unloadDistantChunks = unload;
+
+    (world as any).onPlayerMove({ x: 10, y: 10 });
+    expect(ensure).toHaveBeenCalled();
+    expect(unload).toHaveBeenCalledTimes(1);
+
+    ensure.mockClear();
+    unload.mockClear();
+    (world as any).onPlayerMove({ x: 300, y: 300 });
+    expect(ensure).not.toHaveBeenCalled();
+    expect(unload).not.toHaveBeenCalled();
+
+    (world as any).onPlayerMove({ x: 600, y: 10 });
+    expect(ensure).toHaveBeenCalled();
+    expect(unload).toHaveBeenCalledTimes(1);
+  });
+
+  it('hashes noise deterministically without a string cache', () => {
+    const { world } = makeWorld();
+    expect((world as any).getNoise(1.25, 2.5, 3)).toBe((world as any).getNoise(1.25, 2.5, 3));
+    expect((world as any).noiseCache).toBeUndefined();
   });
 });

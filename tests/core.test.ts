@@ -39,6 +39,52 @@ describe('Core Systems', () => {
       expect(history[0].data).toEqual({ data: 'test' });
     });
 
+    it('should keep the ring buffer in oldest-to-newest order after it wraps', () => {
+      (eventBus as any).maxHistorySize = 3;
+      for (let i = 1; i <= 5; i++) {
+        eventBus.emitSync('ring:event', { seq: i });
+      }
+
+      const history = eventBus.getHistory();
+      expect(history).toHaveLength(3);
+      expect(history.map((h) => h.data.seq)).toEqual([3, 4, 5]);
+    });
+
+    it('should reset ring-buffer ordering after clearHistory', () => {
+      (eventBus as any).maxHistorySize = 2;
+      eventBus.emitSync('ring:event', { seq: 1 });
+      eventBus.emitSync('ring:event', { seq: 2 });
+      eventBus.emitSync('ring:event', { seq: 3 });
+
+      eventBus.clearHistory();
+      eventBus.emitSync('ring:event', { seq: 4 });
+      eventBus.emitSync('ring:event', { seq: 5 });
+
+      expect(eventBus.getHistory().map((h) => h.data.seq)).toEqual([4, 5]);
+    });
+
+    it('should return the newest N entries for a limit filter in chronological order', () => {
+      for (let i = 1; i <= 5; i++) {
+        eventBus.emitSync('ring:event', { seq: i });
+      }
+
+      expect(eventBus.getHistory({ limit: 2 }).map((h) => h.data.seq)).toEqual([4, 5]);
+    });
+
+    it('should filter history by event name and since timestamp', () => {
+      const nowSpy = vi.spyOn(Date, 'now');
+      nowSpy.mockReturnValue(1000);
+      eventBus.emitSync('a:event', { seq: 1 });
+      nowSpy.mockReturnValue(2000);
+      eventBus.emitSync('b:event', { seq: 2 });
+      nowSpy.mockReturnValue(3000);
+      eventBus.emitSync('a:event', { seq: 3 });
+      nowSpy.mockRestore();
+
+      expect(eventBus.getHistory({ event: 'a:event' }).map((h) => h.data.seq)).toEqual([1, 3]);
+      expect(eventBus.getHistory({ since: 2000 }).map((h) => h.data.seq)).toEqual([2, 3]);
+    });
+
     it('should have standard game events', () => {
       expect(GameEvents.PLAYER_MOVE).toBe('player:move');
       expect(GameEvents.GAME_START).toBe('game:start');

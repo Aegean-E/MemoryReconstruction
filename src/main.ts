@@ -23,12 +23,14 @@ import { CombatSystem } from '@gameplay/CombatSystem';
 import { MemoryFragmentSystem } from '@gameplay/MemoryFragmentSystem';
 import { AISystem } from '@ai/AISystem';
 import { TestingHarness } from '@testing/TestingHarness';
+import { SaveSystem } from '@gameplay/SaveSystem';
+import { MenuSystem } from './ui/MenuSystem';
 
 // Import configuration
-import graphicsConfig from '@assets/data/graphics.config.json';
-import audioConfig from '@assets/data/audio.config.json';
-import gameplayConfig from '@assets/data/gameplay.config.json';
-import aiConfig from '@assets/data/ai.config.json';
+import graphicsConfig from '@data/graphics.config.json';
+import audioConfig from '@data/audio.config.json';
+import gameplayConfig from '@data/gameplay.config.json';
+import aiConfig from '@data/ai.config.json';
 
 /**
  * Main game initialization
@@ -81,6 +83,8 @@ async function main(): Promise<void> {
     const actorRenderer = new ActorRenderer(eventBus);
     const aiSystem = new AISystem(eventBus, configManager.get('ai'));
     const testingHarness = new TestingHarness(eventBus, moduleRegistry);
+    const saveSystem = new SaveSystem(eventBus);
+    const menuSystem = new MenuSystem(eventBus);
 
     updateLoading(35, 'Reconstructing the world...');
 
@@ -114,6 +118,8 @@ async function main(): Promise<void> {
     moduleRegistry.setSharedState('actorRenderer', actorRenderer);
     moduleRegistry.setSharedState('aiSystem', aiSystem);
     moduleRegistry.setSharedState('testingHarness', testingHarness);
+    moduleRegistry.setSharedState('saveSystem', saveSystem);
+    moduleRegistry.setSharedState('menuSystem', menuSystem);
 
     moduleRegistry.register(assetManager);
     moduleRegistry.register(renderSystem);
@@ -126,6 +132,8 @@ async function main(): Promise<void> {
     moduleRegistry.register(actorRenderer);
     moduleRegistry.register(aiSystem);
     moduleRegistry.register(testingHarness);
+    moduleRegistry.register(saveSystem);
+    moduleRegistry.register(menuSystem);
 
     await moduleRegistry.initializeAll({
       graphics: configManager.get('graphics'),
@@ -146,6 +154,8 @@ async function main(): Promise<void> {
     (window as any).__GAME__ = game;
     (window as any).__MODULE_REGISTRY__ = moduleRegistry;
     (window as any).__TESTING_HARNESS__ = testingHarness;
+    (window as any).__SAVE_SYSTEM__ = saveSystem;
+    (window as any).__MENU_SYSTEM__ = menuSystem;
 
     console.log('[Game] Memory Reconstruction initialized successfully');
     console.log('[Game] AI Testing Harness available at window.__TESTING_HARNESS__');

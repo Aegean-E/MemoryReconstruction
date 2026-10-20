@@ -33,7 +33,8 @@ export default defineConfig({
       '@ai': path.resolve(__dirname, 'src/ai'),
       '@testing': path.resolve(__dirname, 'src/testing'),
       '@utils': path.resolve(__dirname, 'src/utils'),
-      '@assets': path.resolve(__dirname, 'assets')
+      '@assets': path.resolve(__dirname, 'assets'),
+      '@data': path.resolve(__dirname, 'src/data')
     }
   },
   define: {

@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "generated": "2026-10-20",
+  "atlas": "data/sprite_atlas.json",
+  "assets": {
+    "player": {
+      "idle": "sprites/player/idle.png",
+      "walk": "sprites/player/walk.png",
+      "attack": "sprites/player/attack.png",
+      "dash": "sprites/player/dash.png"
+    },
+    "enemies": {
+      "scavenger": "sprites/enemies/scavenger.png",
+      "guardian": "sprites/enemies/guardian.png",
+      "echo": "sprites/enemies/echo.png",
+      "wildling": "sprites/enemies/wildling.png",
+      "spirit": "sprites/enemies/spirit.png",
+      "caveDweller": "sprites/enemies/caveDweller.png",
+      "crystalGolem": "sprites/enemies/crystalGolem.png",
+      "shadow": "sprites/enemies/shadow.png",
+      "crystalGuardian": "sprites/enemies/crystalGuardian.png",
+      "prismEntity": "sprites/enemies/prismEntity.png",
+      "voidWalker": "sprites/enemies/voidWalker.png",
+      "forgotten": "sprites/enemies/forgotten.png",
+      "keeper": "sprites/enemies/keeper.png"
+    },
+    "tilesets": {
+      "ruins": "sprites/tilesets/ruins.png",
+      "forest": "sprites/tilesets/forest.png",
+      "caves": "sprites/tilesets/caves.png",
+      "crystal": "sprites/tilesets/crystal.png",
+      "void": "sprites/tilesets/void.png",
+      "sanctuary": "sprites/tilesets/sanctuary.png"
+    },
+    "backgrounds": {
+      "ruins": "sprites/backgrounds/ruins.png",
+      "forest": "sprites/backgrounds/forest.png",
+      "caves": "sprites/backgrounds/caves.png",
+      "crystal": "sprites/backgrounds/crystal.png",
+      "void": "sprites/backgrounds/void.png",
+      "sanctuary": "sprites/backgrounds/sanctuary.png"
+    },
+    "props": {
+      "memory_fountain": "sprites/props/memory_fountain.png",
+      "statue": "sprites/props/statue.png",
+      "crystal_cluster": "sprites/props/crystal_cluster.png",
+      "ancient_tree": "sprites/props/ancient_tree.png",
+      "ruins_door": "sprites/props/ruins_door.png",
+      "sanctuary_altar": "sprites/props/sanctuary_altar.png",
+      "void_rift": "sprites/props/void_rift.png",
+      "memory_chest": "sprites/props/memory_chest.png"
+    },
+    "ui": {
+      "health": "sprites/ui/health.png",
+      "mana": "sprites/ui/mana.png",
+      "stamina": "sprites/ui/stamina.png",
+      "memory_fragment": "sprites/ui/memory_fragment.png",
+      "fragment_shard": "sprites/ui/fragment_shard.png"
+    },
+    "particles": {
+      "spark": "sprites/particles/spark.png",
+      "smoke": "sprites/particles/smoke.png",
+      "blood": "sprites/particles/blood.png",
+      "magic": "sprites/particles/magic.png"
+    }
+  },
+  "notes": "Hand-painted 2.5D sprite sheets and tile atlases for the Memory Light art direction."
+}

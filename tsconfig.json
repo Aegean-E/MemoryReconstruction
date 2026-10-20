@@ -27,7 +27,8 @@
       "@ai/*": ["src/ai/*"],
       "@testing/*": ["src/testing/*"],
       "@utils/*": ["src/utils/*"],
-      "@assets/*": ["assets/*"]
+      "@assets/*": ["assets/*"],
+      "@data/*": ["src/data/*"]
     },
     "types": ["vite/client", "vitest/globals"]
   },

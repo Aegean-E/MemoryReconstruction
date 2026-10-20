@@ -1,0 +1,18 @@
+{
+  "masterVolume": 0.8,
+  "musicVolume": 0.6,
+  "sfxVolume": 0.8,
+  "voiceVolume": 1.0,
+  "sampleRate": 48000,
+  "maxChannels": 32,
+  "adaptiveMusic": {
+    "enabled": true,
+    "crossfadeDuration": 2.0,
+    "layers": 4
+  },
+  "spatialAudio": {
+    "enabled": true,
+    "rolloffFactor": 1.0,
+    "maxDistance": 500
+  }
+}

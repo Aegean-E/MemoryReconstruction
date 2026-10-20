@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { EventBus } from '@core/EventBus';
 import { ConfigSchemas } from '@core/ConfigManager';
 import { PlayerSystem } from '@gameplay/PlayerSystem';
-import gameplayConfigJson from '@assets/data/gameplay.config.json';
+import gameplayConfigJson from '@data/gameplay.config.json';
 import {
   MemoryFragmentSystem,
   fragmentSpawnsFromChunk,

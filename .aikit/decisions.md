@@ -40,3 +40,10 @@ or the architecture; see the header above for where each entry goes. -->
 - **Context**: Running the game required knowing to navigate to `projects/MemoryReconstruction` and run `npm run dev`. Opening `index.html` directly failed because modern browsers enforce CORS on local ES module imports, and `npm start` failed because only `"dev"` was mapped in `package.json`.
 - **Decision**: Add `"start": "vite"` to `package.json`, and provide `start.bat` (Windows) and `start.sh` (Unix/macOS) in the project root. Both scripts verify Node.js and npm in PATH, automatically run `npm install` if `node_modules/` is absent, and launch the Vite development server on `http://localhost:3000`.
 - **Consequences**: Users and agents can start the game directly via double-clicking `start.bat`, executing `./start.sh`, or running standard `npm start`.
+
+### ADR-006: Move imported configuration assets to src/data, eliminate movement jitter, and provide UI metagame systems
+- **Date**: 2026-10-20
+- **Status**: Accepted
+- **Context**: Vite 5 forbids importing JSON configuration and sprite atlas files from publicDir: 'assets', throwing explicit initialization errors. Simultaneously, PlayerSystem dispatched asynchronous PLAYER_MOVE events back to itself during movement updates, causing coordinate oscillation and movement lag. Furthermore, the game lacked player onboarding, pause/title menus, persistence, and settings.
+- **Decision**: Move configuration and atlas JSON files to src/data with a @data path alias; eliminate the recursive PLAYER_MOVE emission in PlayerSystem while smoothly integrating collision checks and increasing camera follow responsiveness; implement SaveSystem for localStorage persistence of serialized game states; and create MenuSystem containing Title/Pause screens, interactive Tutorials, Memory Walker Chronicles/Story prologue, and Audio/Video Settings.
+- **Consequences**: Zero-friction startup in both dev and preview modes without public directory import errors; 60fps stutter-free movement; fully featured metagame interface with working save/load and settings.

@@ -4,7 +4,7 @@ import { ConfigSchemas } from '@core/ConfigManager';
 import { WorldSystem } from '@gameplay/WorldSystem';
 import { resolveTileColor } from '@gameplay/tileColors';
 import type { BiomeConfig, ChunkData, TileData } from '@gameplay/WorldSystem';
-import gameplayConfigJson from '@assets/data/gameplay.config.json';
+import gameplayConfigJson from '@data/gameplay.config.json';
 
 const biome = {
   colorPalette: [0x111111, 0x222222, 0x333333, 0x444444],

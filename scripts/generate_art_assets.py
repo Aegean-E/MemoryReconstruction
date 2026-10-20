@@ -22,6 +22,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
+SRC_DATA = ROOT / "src" / "data"
 SPRITES = ASSETS / "sprites"
 
 SS = 4

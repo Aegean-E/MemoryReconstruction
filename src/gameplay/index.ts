@@ -38,3 +38,11 @@ export {
   type StatusEffect,
   type Projectile,
 } from './CombatSystem';
+export {
+  SaveSystem,
+  SAVE_KEY_V1,
+  SETTINGS_KEY_V1,
+  type SaveMetadata,
+  type GameSettings,
+  DEFAULT_SETTINGS,
+} from './SaveSystem';

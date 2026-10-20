@@ -3,7 +3,7 @@ import { EventBus } from '@core/EventBus';
 import { ConfigSchemas } from '@core/ConfigManager';
 import { PlayerSystem } from '@gameplay/PlayerSystem';
 import { CombatSystem } from '@gameplay/CombatSystem';
-import gameplayConfigJson from '@assets/data/gameplay.config.json';
+import gameplayConfigJson from '@data/gameplay.config.json';
 
 const gameplayConfig = ConfigSchemas.gameplay.parse(gameplayConfigJson);
 

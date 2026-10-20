@@ -344,7 +344,7 @@ export class PlayerSystem implements IGameModule {
 
     const movement = this.inputSystem.getMovementVector();
 
-    // Apply movement
+    // Apply movement velocity
     if (movement.x !== 0 || movement.y !== 0) {
       this.state.velocity.x = movement.x * this.stats.moveSpeed;
       this.state.velocity.y = movement.y * this.stats.moveSpeed;
@@ -353,53 +353,48 @@ export class PlayerSystem implements IGameModule {
       if (movement.x !== 0) {
         this.state.facing = movement.x > 0 ? 1 : -1;
       }
-
-      this.eventBus.emit(GameEvents.PLAYER_MOVE, {
-        x: this.state.position.x + this.state.velocity.x * deltaTime,
-        y: this.state.position.y + this.state.velocity.y * deltaTime,
-      });
     } else {
       // Deceleration
-      this.state.velocity.x *= 0.9;
-      this.state.velocity.y *= 0.9;
-      if (Math.abs(this.state.velocity.x) < 10) this.state.velocity.x = 0;
-      if (Math.abs(this.state.velocity.y) < 10) this.state.velocity.y = 0;
+      this.state.velocity.x *= 0.8;
+      this.state.velocity.y *= 0.8;
+      if (Math.abs(this.state.velocity.x) < 5) this.state.velocity.x = 0;
+      if (Math.abs(this.state.velocity.y) < 5) this.state.velocity.y = 0;
     }
 
-    // Update position
-    this.state.position.x += this.state.velocity.x * deltaTime;
-    this.state.position.y += this.state.velocity.y * deltaTime;
+    // Collision-aware position integration (no async feedback loop)
+    this.resolveMovement(deltaTime);
 
-    // World collision (simplified)
-    this.resolveCollisions();
+    // Inform WorldSystem for streaming
+    this.eventBus.emit('player:position', {
+      x: this.state.position.x,
+      y: this.state.position.y,
+    });
   }
 
-  private resolveCollisions(): void {
-    if (!this.worldSystem) return;
+  private resolveMovement(deltaTime: number): void {
+    const margin = 10;
+    const dx = this.state.velocity.x * deltaTime;
+    const dy = this.state.velocity.y * deltaTime;
 
-    const margin = 8;
-    const nextX = this.state.position.x + this.state.velocity.x * (1 / 60);
-    const nextY = this.state.position.y + this.state.velocity.y * (1 / 60);
-
-    // Check horizontal
-    if (
-      this.worldSystem.isSolidAt(
-        nextX + (this.state.velocity.x > 0 ? margin : -margin),
-        this.state.position.y
-      )
-    ) {
-      this.state.velocity.x = 0;
+    if (dx !== 0) {
+      const nextX = this.state.position.x + dx;
+      const testX = nextX + (dx > 0 ? margin : -margin);
+      if (this.worldSystem && this.worldSystem.isSolidAt(testX, this.state.position.y)) {
+        this.state.velocity.x = 0;
+      } else {
+        this.state.position.x = nextX;
+      }
     }
 
-    // Check vertical
-    if (
-      this.worldSystem.isSolidAt(
-        this.state.position.x,
-        nextY + (this.state.velocity.y > 0 ? margin : -margin)
-      )
-    ) {
-      this.state.velocity.y = 0;
-      this.state.grounded = this.state.velocity.y >= 0;
+    if (dy !== 0) {
+      const nextY = this.state.position.y + dy;
+      const testY = nextY + (dy > 0 ? margin : -margin);
+      if (this.worldSystem && this.worldSystem.isSolidAt(this.state.position.x, testY)) {
+        this.state.velocity.y = 0;
+        this.state.grounded = dy >= 0;
+      } else {
+        this.state.position.y = nextY;
+      }
     }
   }
 

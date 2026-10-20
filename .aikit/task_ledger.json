@@ -1,40 +1,13 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "zero-friction-start",
+    "task_id": "engine-ux-gameplay-systems",
     "last_phase": "phase 4",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1792515001.7636776,
-    "completed_at": 1792515018.3109627
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1792515833.4283457
   },
   "checkpoints": [
-    {
-      "task_id": "green-gates",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/4] mechanical: rewrite eslint.config.js as a flat config for the installed ESLint 8.57 (legacy CJS config under type:module could never load) and fix the lint script, then repair resize_sprites.py open(); [2/4] hygiene: resolve the three external font URLs in index.html and the absolute machine paths in the two generate scripts; [3/4] typecheck and build: fix the TestingHarness event handlers, its nullable AISystem, helpers.pick's generic bound and the untyped config reads in tests/core.test.ts; [4/4] rerun aikit check to 7/7, record the checklist outcome, then commit .aikit/, .gitignore and the fixed files explicitly",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792438737.1970146,
-      "timestamp_str": "2026-10-19 22:38:57",
-      "impact_assessment": {
-        "why": "the integration check left 5 of 7 gates red and a project commits only when every gate passes (PRINCIPLE-011 R8), so these fixes unblock the first verified commit of MemoryReconstruction",
-        "benefits": "gates become real rather than declared: lint actually loads a config, typecheck and build pin the types, hygiene keeps the tree portable and offline-clean, README gains the cold-start contract",
-        "risks": "contract: fixes must not change game behaviour or weaken any test assertion; dependency: no new packages, the flat config uses packages already installed; concurrency: the user's other uncommitted asset work is never staged or edited; state: .aikit memory stays uncommitted until the final green run",
-        "mitigation": "run npm test after every milestone and the full aikit check at the end; typing fixes only cast or constrain, assertions stay untouched; if lint under the declared strictness produces a flood of findings, stop and bring the options to the user instead of weakening the config unilaterally"
-      }
-    },
-    {
-      "task_id": "green-gates",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "checklists: passed; all 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); resolved ESLint flat config, typing errors, build minifier, hygiene paths/font annotations, and README quick reference",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792440482.1176922,
-      "timestamp_str": "2026-10-19 23:08:02"
-    },
     {
       "task_id": "green-gates",
       "phase": "completed",
@@ -243,6 +216,32 @@
       "status": "completed",
       "timestamp": 1792515018.310964,
       "timestamp_str": "2026-10-20 19:50:18"
+    },
+    {
+      "task_id": "engine-ux-gameplay-systems",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/6] data imports: move JSON configs to src/data, add @data alias to vite/tsconfig, and update all imports; [2/6] movement: eliminate PLAYER_MOVE feedback loop in PlayerSystem and smooth camera tracking; [3/6] menu & UI: add Title/Pause menu with Start, Resume, Save, Load, Settings, Tutorial, and Story; [4/6] save/load: implement SaveSystem using localStorage with serialized game state; [5/6] settings, tutorial & story: implement settings sliders, interactive tutorial overlay, and intro story dialog; [6/6] tests, docs, ADR-006, 7-gate check, commit and push",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792515265.2977986,
+      "timestamp_str": "2026-10-20 19:54:25",
+      "impact_assessment": {
+        "why": "Vite dev blocks publicDir imports breaking startup; PlayerSystem self-event loop causes severe movement lag; game lacks menu, save/load, settings, tutorial, and story",
+        "benefits": "clean startup in Vite dev, smooth 60fps movement, complete title/pause menu, persistent save/load, settings controls, interactive tutorial, and lore presentation",
+        "risks": "contract: existing module APIs preserved, save data versioned; dependency: zero external deps added; concurrency: clean tree; state: localStorage namespaced",
+        "mitigation": "test save/load serialization, verify movement stability, maintain backward compatible imports, and pass all 7 gates"
+      }
+    },
+    {
+      "task_id": "engine-ux-gameplay-systems",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "checklists: passed; 7/7 project gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); resolved Vite public directory import errors by moving configs to src/data with @data alias, fixed player movement jitter by removing recursive PLAYER_MOVE event loop, added SaveSystem for persistent game state and settings, created MenuSystem with Title/Pause screens, interactive Tutorial, Story prologue, and Audio/Video settings, and added unit tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792515833.4283457,
+      "timestamp_str": "2026-10-20 20:03:53"
     }
   ]
 }

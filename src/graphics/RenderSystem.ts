@@ -15,7 +15,7 @@ import { GameEvents } from '@core/EventBus';
 import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
 import type { GraphicsConfig } from '@core/ConfigManager';
 import type { AssetManager } from '@engine/AssetManager';
-import spriteAtlas from '@assets/data/sprite_atlas.json';
+import spriteAtlas from '@data/sprite_atlas.json';
 import { resolveAssetUrl } from '@utils/assetUrl';
 import { loadTextureAtlas } from './TextureAtlas';
 import type { TextureAtlas } from './TextureAtlas';

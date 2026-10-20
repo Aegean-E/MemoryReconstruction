@@ -15,7 +15,7 @@ import type { PlayerSystem } from './PlayerSystem';
 import type { ChunkData } from './WorldSystem';
 import type { WorldSystem } from './WorldSystem';
 import type { RenderSystem } from '@graphics/RenderSystem';
-import spriteAtlas from '@assets/data/sprite_atlas.json';
+import spriteAtlas from '@data/sprite_atlas.json';
 import { resolveAssetUrl } from '@utils/assetUrl';
 
 export interface FragmentSpawn {

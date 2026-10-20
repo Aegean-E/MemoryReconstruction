@@ -124,6 +124,16 @@
 - **Projectiles**: Homing, piercing, lifetime, hitbox collision
 - **AI Behaviors**: Idle, patrol, chase, attack, flee
 
+### SaveSystem (src/gameplay/SaveSystem.ts)
+- **Persistence**: LocalStorage save/load of deterministic GameState
+- **Metadata**: Level, memory fragment count, playtime, and timestamp tracking
+- **Settings**: Persistent configuration for audio volumes and screen effects
+
+### MenuSystem (src/ui/MenuSystem.ts)
+- **Overlays**: Title Screen, In-Game Pause Menu, Tutorial, Story & Chronicles, Settings
+- **Interaction**: Keyboard shortcut (ESC) and HUD button triggers, auto-pausing game loop
+- **Feedback**: Non-intrusive toast notification system
+
 ## AI Layer
 
 ### AISystem (`src/ai/AISystem.ts`)

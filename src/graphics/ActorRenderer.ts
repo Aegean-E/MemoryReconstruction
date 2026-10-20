@@ -6,7 +6,7 @@ import type { PlayerSystem } from '@gameplay/PlayerSystem';
 import type { CombatEntity, CombatSystem } from '@gameplay/CombatSystem';
 import { loadTextureAtlas } from './TextureAtlas';
 import type { TextureAtlas } from './TextureAtlas';
-import spriteAtlas from '@assets/data/sprite_atlas.json';
+import spriteAtlas from '@data/sprite_atlas.json';
 import { resolveAssetUrl } from '@utils/assetUrl';
 
 interface AnimationClip {
@@ -267,7 +267,7 @@ export class ActorRenderer implements IGameModule {
     this.eventBus.emitSync('camera:move', {
       x: state.position.x,
       y: state.position.y,
-      lerp: 0.14,
+      lerp: 0.22,
     });
 
     let animation = 'idle';

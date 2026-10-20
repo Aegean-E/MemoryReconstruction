@@ -1,0 +1,219 @@
+{
+  "lore": {
+    "entries": [
+      {
+        "id": "lore_001",
+        "title": "The Nature of Memory",
+        "category": "fundamental",
+        "text": "Memory is not storage. Memory is *structure*. The world does not exist in atoms or energy, but in the shared remembering of all conscious beings. When the last mind forgets a thing, that thing ceases to have ever existed.",
+        "unlockCondition": { "type": "default" },
+        "relatedMemories": ["fragment_001", "fragment_002"]
+      },
+      {
+        "id": "lore_002",
+        "title": "The First Fracture",
+        "category": "history",
+        "text": "It began with a single forgotten name. A child's imaginary friend. A lover's promise. A dying word unheard. The fracture spread like a crack in glass, each forgotten thing weakening the whole. By the time the great civilizations noticed, half the world was already gone.",
+        "unlockCondition": { "type": "memory", "amount": 10 },
+        "relatedMemories": ["fragment_005", "fragment_012"]
+      },
+      {
+        "id": "lore_003",
+        "title": "The Memory Walkers",
+        "category": "beings",
+        "text": "Some souls are born with the gift - or curse - of walking between memories. They see the fractures. They can enter the memories of others, navigate the spaces between recollections, and pull lost things back into existence. They are the Memory Walkers. You are one.",
+        "unlockCondition": { "type": "default" },
+        "relatedMemories": ["fragment_003", "core_memory_001"]
+      },
+      {
+        "id": "lore_004",
+        "title": "The Ruins Civilization",
+        "category": "civilizations",
+        "text": "The first to fall. They built their cities from memory-stone, believing permanence was possible. Their archives held the names of every citizen, every deed, every love and loss. When the fracture came, the stone forgot its shape. The archives became labyrinths of blank pages. The Scavengers are their descendants, driven mad by the silence where memories should be.",
+        "unlockCondition": { "type": "biome", "biome": "ruins", "depth": 10 },
+        "relatedMemories": ["fragment_015", "fragment_023", "core_memory_002"]
+      },
+      {
+        "id": "lore_005",
+        "title": "The Whispering Forest",
+        "category": "civilizations",
+        "text": "The forest-dwellers chose a different path. They bound their memories to living wood, letting the trees remember for them. For centuries it worked - the forest grew dense with recollection. But when the fracture reached the roots, the trees began to *misremember*. They grew memories that never happened. The Wildlings are those who lost themselves in the false growth. The Spirits are the forest itself, trying to prune the corruption.",
+        "unlockCondition": { "type": "biome", "biome": "forest", "depth": 15 },
+        "relatedMemories": ["fragment_031", "fragment_042", "core_memory_003"]
+      },
+      {
+        "id": "lore_006",
+        "title": "The Echoing Caves",
+        "category": "civilizations",
+        "text": "Deep below, the cave-dwellers discovered that sound carries memory better than stone or wood. They sang their histories in vast chambers, letting echoes preserve what minds could not. The crystals grew in resonance with their songs, each facet a frozen note. But the fracture silenced the songs. The Cave Dwellers hunt by sound now, desperate for any echo of the past. The Crystal Golems are the songs given form, mindless and eternal.",
+        "unlockCondition": { "type": "biome", "biome": "caves", "depth": 20 },
+        "relatedMemories": ["fragment_055", "fragment_067", "core_memory_004"]
+      },
+      {
+        "id": "lore_007",
+        "title": "The Prism Gardens",
+        "category": "civilizations",
+        "text": "The most advanced civilization. They learned to *refract* memory - splitting single recollections into spectrums of perspective, storing each angle in crystal lattices. Their gardens were libraries of infinite viewpoint. But refraction requires a source light. When the fracture dimmed the sun of shared memory, the prisms turned dark. The Crystal Guardians tend dead gardens. The Prism Entities are memories that shattered into their component perspectives, each believing itself the whole truth.",
+        "unlockCondition": { "type": "biome", "biome": "crystal", "depth": 30 },
+        "relatedMemories": ["fragment_089", "fragment_101", "core_memory_005"]
+      },
+      {
+        "id": "lore_008",
+        "title": "The Void Between",
+        "category": "metaphysics",
+        "text": "Where do forgotten things go? Not to nothingness - nothingness is a concept, and concepts require memory. They go to the Void Between, the space where unremembered existence accumulates. It is not empty. It is *full* of things that never were, because no one remembers them being. The Void Walkers are the antibodies of reality, erasing the unremembered to prevent infection. The Forgotten are the memories that refused to die, clawing their way back from non-existence.",
+        "unlockCondition": { "type": "biome", "biome": "void", "depth": 50 },
+        "relatedMemories": [
+          "fragment_150",
+          "fragment_200",
+          "core_memory_006",
+          "primordial_memory_001"
+        ]
+      },
+      {
+        "id": "lore_009",
+        "title": "The Sanctuary and the Keeper",
+        "category": "metaphysics",
+        "text": "At the center of all fractures lies the Sanctuary. It is not a place - it is the *possibility* of a place. The Keeper tends it. Some say the Keeper was the first Memory Walker. Some say the Keeper *is* the collective memory of all walkers. The Keeper does not guard the Sanctuary. The Keeper *is* the Sanctuary. To reach it is to understand: reconstruction is not restoration. It is creation.",
+        "unlockCondition": { "type": "biome", "biome": "sanctuary", "depth": 0 },
+        "relatedMemories": ["primordial_memory_001"]
+      },
+      {
+        "id": "lore_010",
+        "title": "The Truth of Reconstruction",
+        "category": "philosophy",
+        "text": "You have walked the fractures. You have gathered the pieces. You stand at the Altar of Reconstruction. Now you must choose:\n\n1. RESTORE: Return the world to what it was. Safe. Familiar. But the fracture remains in the foundation. It will happen again.\n\n2. REFORM: Keep the memories, change the structure. A new world from old pieces. The fracture becomes a feature, not a flaw.\n\n3. REBIRTH: Release all memories. Let the world forget completely. From true nothingness, a truly new world can grow. But you will not be in it.\n\n4. TRANSCEND: Become memory itself. Join the Keeper. Guide future walkers. Never rest. Never end.\n\nThere is no wrong choice. There is only *your* choice. And the world will remember what you decide.",
+        "unlockCondition": { "type": "ending", "condition": "all_bosses_defeated" },
+        "relatedMemories": ["primordial_memory_001"]
+      },
+      {
+        "id": "lore_011",
+        "title": "Memory Fragments",
+        "category": "mechanics",
+        "text": "Fragments are the currency of reconstruction. Each piece contains a sliver of lost reality - a color, a sound, a feeling, a fact. Alone, a fragment is meaningless. Combined, they form Core Memories: pivotal moments that unlock new abilities and reveal the path forward. The Primordial Memory is the theoretical complete set - the memory of the world's first moment. No walker has ever assembled it. Perhaps you will be the first.",
+        "unlockCondition": { "type": "default" },
+        "relatedMemories": ["fragment_001", "core_memory_001", "primordial_memory_001"]
+      },
+      {
+        "id": "lore_012",
+        "title": "The Cycle",
+        "category": "philosophy",
+        "text": "Scholars of the Prism Gardens calculated: the fracture is not a disaster. It is a *cycle*. Memory accumulates. The world becomes rigid, overdefined, brittle. The fracture is the world breathing out, releasing what it no longer needs. Reconstruction is breathing in. The walkers are the lungs. Each run is a breath. The world has breathed countless times. It will breathe countless more. Your run is one breath. Make it meaningful.",
+        "unlockCondition": { "type": "runs", "count": 5 },
+        "relatedMemories": ["fragment_500"]
+      }
+    ],
+    "memoryFragments": {
+      "fragment_001": {
+        "text": "The taste of rain on hot stone.",
+        "location": "ruins",
+        "value": 1
+      },
+      "fragment_002": { "text": "A lullaby hummed off-key.", "location": "ruins", "value": 1 },
+      "fragment_003": {
+        "text": "The weight of a sword you never lifted.",
+        "location": "ruins",
+        "value": 2
+      },
+      "fragment_005": {
+        "text": "The name of the first forgotten thing.",
+        "location": "ruins",
+        "value": 3
+      },
+      "fragment_012": {
+        "text": "A map of the fracture's first path.",
+        "location": "ruins",
+        "value": 5
+      },
+      "fragment_015": {
+        "text": "The last words of the Ruins' king.",
+        "location": "ruins",
+        "value": 5
+      },
+      "fragment_023": { "text": "The blueprint of memory-stone.", "location": "ruins", "value": 8 },
+      "fragment_031": { "text": "The forest's true name.", "location": "forest", "value": 3 },
+      "fragment_042": {
+        "text": "The song that makes trees walk.",
+        "location": "forest",
+        "value": 5
+      },
+      "fragment_055": {
+        "text": "The first note of the cave-song.",
+        "location": "caves",
+        "value": 3
+      },
+      "fragment_067": {
+        "text": "The crystal that grew from a tear.",
+        "location": "caves",
+        "value": 5
+      },
+      "fragment_089": {
+        "text": "A memory seen from seven angles.",
+        "location": "crystal",
+        "value": 5
+      },
+      "fragment_101": {
+        "text": "The prism that split the self.",
+        "location": "crystal",
+        "value": 8
+      },
+      "fragment_150": { "text": "The sound of a memory dying.", "location": "void", "value": 10 },
+      "fragment_200": {
+        "text": "The name of the first Forgotten.",
+        "location": "void",
+        "value": 15
+      },
+      "fragment_500": {
+        "text": "The cycle completes. The cycle begins.",
+        "location": "sanctuary",
+        "value": 100
+      }
+    },
+    "coreMemories": {
+      "core_memory_001": {
+        "title": "The First Walker",
+        "fragments": ["fragment_001", "fragment_002", "fragment_003"],
+        "reward": "unlock_heal",
+        "text": "She walked when the world was whole. She saw the first crack. She tried to mend it with her own memory. She became the first fracture."
+      },
+      "core_memory_002": {
+        "title": "The Stone That Forgot",
+        "fragments": ["fragment_015", "fragment_023"],
+        "reward": "unlock_shield",
+        "text": "They built eternity from memory. Eternity lasted three generations. The fourth generation found only dust and blank books."
+      },
+      "core_memory_003": {
+        "title": "The Tree That Lied",
+        "fragments": ["fragment_031", "fragment_042"],
+        "reward": "unlock_passive_crit",
+        "text": "The oldest tree remembered a forest fire that never happened. The fire became real. The forest burned. The tree survived."
+      },
+      "core_memory_004": {
+        "title": "The Silent Song",
+        "fragments": ["fragment_055", "fragment_067"],
+        "reward": "unlock_passive_speed",
+        "text": "The last singer sang the song of ending. The crystals wept. The echoes still carry the melody in the deep dark."
+      },
+      "core_memory_005": {
+        "title": "The Prism's Truth",
+        "fragments": ["fragment_089", "fragment_101"],
+        "reward": "unlock_passive_lifesteal",
+        "text": "A memory has no single truth. It has as many truths as there are minds to hold it. The prism does not distort. It reveals."
+      },
+      "core_memory_006": {
+        "title": "The Void's Purpose",
+        "fragments": ["fragment_150", "fragment_200"],
+        "reward": "unlock_ultimate",
+        "text": "The Void is not the enemy. The Void is the womb. Every forgotten thing gestates there. The Forgotten are not monsters. They are the next world waiting to be born."
+      }
+    },
+    "primordialMemories": {
+      "primordial_memory_001": {
+        "title": "The Primordial Memory",
+        "fragments": ["ALL_CORE_MEMORIES"],
+        "reward": "ending_access",
+        "text": "In the beginning, there was only Memory.\nAnd Memory said: 'I remember.'\nAnd there was World.\n\nAnd Memory said: 'I forget.'\nAnd there was Void.\n\nAnd Memory said: 'I reconstruct.'\nAnd there was Walker.\n\nAnd Memory said: 'I choose.'\nAnd there was Ending.\n\nAnd Memory said: 'I begin again.'\nAnd there was... \n\n[The rest is yours to write.]"
+      }
+    }
+  }
+}

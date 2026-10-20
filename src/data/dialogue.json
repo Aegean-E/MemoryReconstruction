@@ -1,0 +1,249 @@
+{
+  "dialogue": {
+    "intro": [
+      {
+        "id": "intro_001",
+        "speaker": "narrator",
+        "text": "In the beginning, there was only Memory. And Memory was the world.",
+        "conditions": { "firstRun": true }
+      },
+      {
+        "id": "intro_002",
+        "speaker": "narrator",
+        "text": "But Memory is fragile. It fractures. It fades. And when Memory breaks... the world breaks with it.",
+        "conditions": { "firstRun": true }
+      },
+      {
+        "id": "intro_003",
+        "speaker": "narrator",
+        "text": "You are a Memory Walker. One of the few who can navigate the fragments. Find the pieces. Reconstruct the truth.",
+        "conditions": { "firstRun": true }
+      }
+    ],
+    "keeper": [
+      {
+        "id": "keeper_001",
+        "speaker": "keeper",
+        "text": "Another walker arrives. How many have come before? I have lost count.",
+        "conditions": { "firstMeeting": true }
+      },
+      {
+        "id": "keeper_002",
+        "speaker": "keeper",
+        "text": "You seek the Primordial Memory. The first memory. The memory that started it all.",
+        "conditions": { "hasCoreMemories": 3 }
+      },
+      {
+        "id": "keeper_003",
+        "speaker": "keeper",
+        "text": "But know this: to reconstruct the world, you must first deconstruct yourself. Are you willing to be forgotten... so that others may remember?",
+        "conditions": { "hasPrimordialMemory": true }
+      },
+      {
+        "id": "keeper_004",
+        "speaker": "keeper",
+        "text": "Memory is not a thing you keep. It is a thing you give. Every memory shared doubles. Every memory hoarded withers.",
+        "conditions": { "phase": 2 }
+      },
+      {
+        "id": "keeper_005",
+        "speaker": "keeper",
+        "text": "Then create anew. Not as it was. As it *could be*.",
+        "conditions": { "phase": 3 }
+      }
+    ],
+    "scavenger": [
+      {
+        "id": "scavenger_001",
+        "speaker": "scavenger",
+        "text": "Shiny... shiny memories... mine... all mine...",
+        "conditions": { "aggro": true }
+      },
+      {
+        "id": "scavenger_002",
+        "speaker": "scavenger",
+        "text": "Don't take them! I found them first! They're mine to forget!",
+        "conditions": { "lowHealth": true }
+      }
+    ],
+    "guardian": [
+      {
+        "id": "guardian_001",
+        "speaker": "guardian",
+        "text": "Halt. The ruins are sealed. No walker may pass without the Key.",
+        "conditions": { "aggro": true }
+      },
+      {
+        "id": "guardian_002",
+        "speaker": "guardian",
+        "text": "My memory... returning... I remember... I was built to protect... not destroy...",
+        "conditions": { "defeated": true }
+      }
+    ],
+    "spirit": [
+      {
+        "id": "spirit_001",
+        "speaker": "spirit",
+        "text": "The forest remembers what you have forgotten. Leave, walker. Your kind brings only sorrow.",
+        "conditions": { "aggro": true }
+      },
+      {
+        "id": "spirit_002",
+        "speaker": "spirit",
+        "text": "Perhaps... not all walkers are the same. The forest will watch your path.",
+        "conditions": { "defeated": true }
+      }
+    ],
+    "forgotten": [
+      {
+        "id": "forgotten_001",
+        "speaker": "forgotten",
+        "text": "REMEMBER US. REMEMBER US. REMEMBER US.",
+        "conditions": { "aggro": true }
+      },
+      {
+        "id": "forgotten_002",
+        "speaker": "forgotten",
+        "text": "You carry so many memories... but do you carry *ours*?",
+        "conditions": { "phase": 2 }
+      },
+      {
+        "id": "forgotten_003",
+        "speaker": "forgotten",
+        "text": "To be forgotten is to never have existed. We refuse. WE REFUSE.",
+        "conditions": { "phase": 3 }
+      },
+      {
+        "id": "forgotten_004",
+        "speaker": "forgotten",
+        "text": "If you will not remember... then we will MAKE you remember. FOREVER.",
+        "conditions": { "enrage": true }
+      }
+    ],
+    "environmental": [
+      {
+        "id": "env_ruins_001",
+        "type": "inscription",
+        "location": "ruins_archive",
+        "text": "Day 847. The fractures spread. We tried to bind memory into stone, but stone forgets too."
+      },
+      {
+        "id": "env_ruins_002",
+        "type": "inscription",
+        "location": "ruins_fountain",
+        "text": "Drink deep, walker. The water remembers what the stone forgets."
+      },
+      {
+        "id": "env_forest_001",
+        "type": "carving",
+        "location": "standing_stones",
+        "text": "The trees grow in rings. Each ring a year. Each year a memory. We are the rings."
+      },
+      {
+        "id": "env_caves_001",
+        "type": "crystal_formation",
+        "location": "memory_vein",
+        "text": "Crystals grow in perfect geometry. Memory grows in chaos. Yet both are true."
+      },
+      {
+        "id": "env_crystal_001",
+        "type": "reflection",
+        "location": "reflection_pool",
+        "text": "Look into the water. See not your face. See your choices. See what you forgot."
+      },
+      {
+        "id": "env_void_001",
+        "type": "void_whisper",
+        "location": "memory_graveyard",
+        "text": "Here lies the memory of a first kiss. Here lies the memory of a last breath. Here lies... nothing."
+      },
+      {
+        "id": "env_sanctuary_001",
+        "type": "altar_text",
+        "location": "reconstruction_altar",
+        "text": "Place the fragments. Speak the words. The world remembers through you."
+      }
+    ],
+    "itemPickup": [
+      {
+        "id": "pickup_memory_fragment",
+        "text": "A fragment returns. The world sharpens slightly."
+      },
+      {
+        "id": "pickup_core_memory",
+        "text": "A core memory! The world shifts. New paths open."
+      },
+      {
+        "id": "pickup_primordial_memory",
+        "text": "THE PRIMORDIAL MEMORY. The beginning. The end. The choice."
+      },
+      {
+        "id": "pickup_ability",
+        "text": "New ability unlocked. Memory reshapes capability."
+      }
+    ],
+    "levelUp": [
+      {
+        "id": "levelup_001",
+        "text": "Experience crystallizes. You grow stronger."
+      },
+      {
+        "id": "levelup_10",
+        "text": "Ten levels. A milestone. Keen Insight awakens."
+      },
+      {
+        "id": "levelup_25",
+        "text": "Quarter century of growth. The world takes notice."
+      },
+      {
+        "id": "levelup_50",
+        "text": "Maximum potential reached. But memory has no maximum."
+      }
+    ],
+    "death": [
+      {
+        "id": "death_001",
+        "text": "You fall. The fragments scatter. But memory persists."
+      },
+      {
+        "id": "death_002",
+        "text": "Death is not the end. It is a comma in the sentence of your journey."
+      },
+      {
+        "id": "death_003",
+        "text": "The Forgotten claim another. But you... you always return."
+      }
+    ],
+    "bossDefeat": [
+      {
+        "id": "boss_guardian",
+        "text": "The Guardian falls. Its memory joins yours. The ruins breathe easier."
+      },
+      {
+        "id": "boss_spirit",
+        "text": "The Spirit returns to the forest. The trees sing a new song."
+      },
+      {
+        "id": "boss_crystal_golem",
+        "text": "The Colossus shatters. Prismatic light scatters. A path opens."
+      },
+      {
+        "id": "boss_prism_entity",
+        "text": "The Prism converges. One light from many. The gardens are whole."
+      },
+      {
+        "id": "boss_forgotten",
+        "text": "The Forgotten are remembered at last. They fade into peace. The Void trembles."
+      },
+      {
+        "id": "boss_keeper",
+        "text": "The Keeper bows. 'The world is yours to shape.' The altar glows."
+      }
+    ]
+  },
+  "conversationFlows": {
+    "keeper_first": ["keeper_001", "keeper_002"],
+    "keeper_core": ["keeper_002", "keeper_003"],
+    "keeper_final": ["keeper_004", "keeper_005"]
+  }
+}

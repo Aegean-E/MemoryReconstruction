@@ -1,0 +1,19 @@
+{
+  "testing": {
+    "enabled": true,
+    "headlessMode": false,
+    "deterministicSeed": 12345,
+    "maxStepsPerScenario": 10000
+  },
+  "rlm": {
+    "enabled": true,
+    "tokenBudget": 50000,
+    "snapshotInterval": 60,
+    "compressionLevel": 1
+  },
+  "behavior": {
+    "difficulty": "normal",
+    "learningEnabled": false,
+    "reactionTime": 0.2
+  }
+}

@@ -1,0 +1,583 @@
+{
+  "playerAbilities": [
+    {
+      "id": "dash",
+      "name": "Phase Dash",
+      "description": "Dash through enemies and projectiles, becoming briefly invulnerable.",
+      "type": "active",
+      "icon": "ability_dash",
+      "cooldown": 1.0,
+      "manaCost": 0,
+      "maxLevel": 3,
+      "levels": [
+        { "level": 1, "distance": 150, "invincibility": 0.3, "effect": "Basic phase dash" },
+        {
+          "level": 2,
+          "distance": 180,
+          "invincibility": 0.4,
+          "effect": "Leaves damaging afterimage",
+          "damage": 15
+        },
+        {
+          "level": 3,
+          "distance": 200,
+          "invincibility": 0.5,
+          "effect": "Can dash through walls",
+          "wallPhase": true
+        }
+      ],
+      "unlockRequirement": { "type": "default" }
+    },
+    {
+      "id": "slash",
+      "name": "Memory Slash",
+      "description": "Quick melee attack that severs memory connections. Builds combo.",
+      "type": "active",
+      "icon": "ability_slash",
+      "cooldown": 0.3,
+      "manaCost": 5,
+      "maxLevel": 5,
+      "levels": [
+        { "level": 1, "damage": 1.0, "range": 30, "effect": "Basic slash" },
+        { "level": 2, "damage": 1.15, "range": 35, "effect": "Hits twice", "multiHit": 2 },
+        {
+          "level": 3,
+          "damage": 1.3,
+          "range": 40,
+          "effect": "Restores 2 mana on kill",
+          "manaOnKill": 2
+        },
+        {
+          "level": 4,
+          "damage": 1.5,
+          "range": 45,
+          "effect": "Critical hits stun 0.5s",
+          "critStun": 0.5
+        },
+        {
+          "level": 5,
+          "damage": 1.75,
+          "range": 50,
+          "effect": "Final hit in combo releases shockwave",
+          "shockwave": true
+        }
+      ],
+      "unlockRequirement": { "type": "default" }
+    },
+    {
+      "id": "heal",
+      "name": "Recollection",
+      "description": "Reconstruct lost health from memory fragments. Channeling can be interrupted.",
+      "type": "active",
+      "icon": "ability_heal",
+      "cooldown": 10.0,
+      "manaCost": 20,
+      "channelTime": 1.5,
+      "maxLevel": 3,
+      "levels": [
+        { "level": 1, "healPercent": 0.3, "effect": "Heals 30% max health" },
+        { "level": 2, "healPercent": 0.4, "effect": "Heals 40%, removes 1 debuff", "cleanse": 1 },
+        {
+          "level": 3,
+          "healPercent": 0.5,
+          "effect": "Heals 50%, grants 3s regeneration",
+          "regen": 3
+        }
+      ],
+      "unlockRequirement": { "type": "memory", "amount": 50, "memoryId": "core_memory_001" }
+    },
+    {
+      "id": "shield",
+      "name": "Mnemonic Barrier",
+      "description": "Create a barrier of solidified memories. Absorbs damage and reflects projectiles.",
+      "type": "active",
+      "icon": "ability_shield",
+      "cooldown": 15.0,
+      "manaCost": 30,
+      "duration": 3.0,
+      "maxLevel": 3,
+      "levels": [
+        { "level": 1, "absorbAmount": 50, "effect": "Absorbs 50 damage" },
+        {
+          "level": 2,
+          "absorbAmount": 100,
+          "effect": "Absorbs 100, reflects projectiles",
+          "reflect": true
+        },
+        {
+          "level": 3,
+          "absorbAmount": 150,
+          "effect": "Absorbs 150, reflects, explodes on break",
+          "explode": true,
+          "explodeDamage": 50
+        }
+      ],
+      "unlockRequirement": { "type": "memory", "amount": 100, "memoryId": "core_memory_002" }
+    },
+    {
+      "id": "ultimate",
+      "name": "Reconstruction",
+      "description": "Fully restore health and mana, reset all cooldowns, unleash devastating memory wave.",
+      "type": "ultimate",
+      "icon": "ability_ultimate",
+      "cooldown": 60.0,
+      "manaCost": 50,
+      "maxLevel": 1,
+      "levels": [
+        {
+          "level": 1,
+          "healPercent": 1.0,
+          "manaPercent": 1.0,
+          "damage": 1000,
+          "radius": 300,
+          "effect": "Full restore, cooldown reset, massive AoE"
+        }
+      ],
+      "unlockRequirement": { "type": "memory", "amount": 1000, "memoryId": "primordial_memory_001" }
+    },
+    {
+      "id": "passive_regen",
+      "name": "Memory Flow",
+      "description": "Passively regenerate health and mana over time.",
+      "type": "passive",
+      "icon": "ability_regen",
+      "maxLevel": 5,
+      "levels": [
+        { "level": 1, "hpPerSec": 0.5, "mpPerSec": 0.2, "effect": "Slow regeneration" },
+        { "level": 2, "hpPerSec": 1.0, "mpPerSec": 0.5, "effect": "Moderate regeneration" },
+        {
+          "level": 3,
+          "hpPerSec": 2.0,
+          "mpPerSec": 1.0,
+          "effect": "Fast regeneration, combat regen 50%"
+        },
+        {
+          "level": 4,
+          "hpPerSec": 3.5,
+          "mpPerSec": 1.5,
+          "effect": "Rapid regeneration, full combat regen"
+        },
+        {
+          "level": 5,
+          "hpPerSec": 5.0,
+          "mpPerSec": 2.0,
+          "effect": "Rapid regeneration, share 25% with allies"
+        }
+      ],
+      "unlockRequirement": { "type": "default" }
+    },
+    {
+      "id": "passive_crit",
+      "name": "Keen Insight",
+      "description": "Increased critical hit chance and critical damage multiplier.",
+      "type": "passive",
+      "icon": "ability_crit",
+      "maxLevel": 3,
+      "levels": [
+        {
+          "level": 1,
+          "critChance": 0.03,
+          "critMultiplier": 0.25,
+          "effect": "+3% crit chance, +25% crit damage"
+        },
+        {
+          "level": 2,
+          "critChance": 0.06,
+          "critMultiplier": 0.5,
+          "effect": "+6% crit chance, +50% crit damage"
+        },
+        {
+          "level": 3,
+          "critChance": 0.1,
+          "critMultiplier": 0.75,
+          "effect": "+10% crit chance, +75% crit damage, crits apply random debuff"
+        }
+      ],
+      "unlockRequirement": { "type": "level", "level": 10 }
+    },
+    {
+      "id": "passive_speed",
+      "name": "Swift Recall",
+      "description": "Increased movement speed and dash distance.",
+      "type": "passive",
+      "icon": "ability_speed",
+      "maxLevel": 3,
+      "levels": [
+        {
+          "level": 1,
+          "moveSpeed": 20,
+          "dashDistance": 20,
+          "effect": "+20 move speed, +20 dash distance"
+        },
+        {
+          "level": 2,
+          "moveSpeed": 40,
+          "dashDistance": 40,
+          "effect": "+40 move speed, +40 dash distance"
+        },
+        {
+          "level": 3,
+          "moveSpeed": 60,
+          "dashDistance": 60,
+          "effect": "+60 move speed, +60 dash distance, dash leaves trail"
+        }
+      ],
+      "unlockRequirement": { "type": "level", "level": 5 }
+    },
+    {
+      "id": "passive_lifesteal",
+      "name": "Memory Feast",
+      "description": "Heal on dealing damage. Stronger against memory-based enemies.",
+      "type": "passive",
+      "icon": "ability_lifesteal",
+      "maxLevel": 3,
+      "levels": [
+        {
+          "level": 1,
+          "lifesteal": 0.05,
+          "vsMemory": 0.1,
+          "effect": "5% lifesteal, 10% vs memory enemies"
+        },
+        {
+          "level": 2,
+          "lifesteal": 0.1,
+          "vsMemory": 0.2,
+          "effect": "10% lifesteal, 20% vs memory enemies"
+        },
+        {
+          "level": 3,
+          "lifesteal": 0.15,
+          "vsMemory": 0.3,
+          "effect": "15% lifesteal, 30% vs memory enemies, overheal grants shield"
+        }
+      ],
+      "unlockRequirement": { "type": "memory", "amount": 200, "memoryId": "core_memory_003" }
+    }
+  ],
+  "enemyAbilities": [
+    {
+      "id": "phase_shift",
+      "name": "Phase Shift",
+      "description": "Become intangible and move through obstacles.",
+      "type": "movement",
+      "cooldown": 8.0,
+      "duration": 2.0,
+      "effect": "Invulnerable, pass through walls, speed +50%"
+    },
+    {
+      "id": "nature_bolt",
+      "name": "Nature Bolt",
+      "description": "Fire a homing projectile of natural energy.",
+      "type": "projectile",
+      "cooldown": 3.0,
+      "damage": 25,
+      "speed": 200,
+      "homing": true,
+      "effect": "Applies poison 3s"
+    },
+    {
+      "id": "healing_bloom",
+      "name": "Healing Bloom",
+      "description": "Create a zone that heals allies over time.",
+      "type": "area",
+      "cooldown": 15.0,
+      "radius": 100,
+      "healPerSec": 10,
+      "duration": 5.0,
+      "effect": "Heals allies in radius"
+    },
+    {
+      "id": "entangling_roots",
+      "name": "Entangling Roots",
+      "description": "Root enemies in place for a short duration.",
+      "type": "crowd_control",
+      "cooldown": 12.0,
+      "radius": 80,
+      "duration": 2.5,
+      "effect": "Stuns enemies in radius"
+    },
+    {
+      "id": "sonic_screech",
+      "name": "Sonic Screech",
+      "description": "Emit a cone of sound that damages and stuns.",
+      "type": "cone",
+      "cooldown": 8.0,
+      "angle": 60,
+      "range": 150,
+      "damage": 30,
+      "stunDuration": 1.0,
+      "effect": "Cone stun"
+    },
+    {
+      "id": "crystal_reflect",
+      "name": "Crystal Reflect",
+      "description": "Create a barrier that reflects projectiles.",
+      "type": "buff",
+      "cooldown": 10.0,
+      "duration": 3.0,
+      "effect": "Reflect projectiles, +50% resistance"
+    },
+    {
+      "id": "prism_beam",
+      "name": "Prism Beam",
+      "description": "Fire a piercing beam of refracted light.",
+      "type": "beam",
+      "cooldown": 6.0,
+      "range": 300,
+      "width": 20,
+      "damage": 40,
+      "pierce": true,
+      "effect": "Pierces enemies, applies burn"
+    },
+    {
+      "id": "shard_explosion",
+      "name": "Shard Explosion",
+      "description": "Explode in a shower of crystal shards.",
+      "type": "burst",
+      "cooldown": 15.0,
+      "radius": 120,
+      "damage": 50,
+      "shardCount": 12,
+      "effect": "Radial burst + lingering shards"
+    },
+    {
+      "id": "shadow_phase",
+      "name": "Shadow Phase",
+      "description": "Enter shadow form, becoming untargetable and faster.",
+      "type": "movement",
+      "cooldown": 10.0,
+      "duration": 4.0,
+      "effect": "Untargetable, +60% speed, pass through enemies"
+    },
+    {
+      "id": "memory_drain",
+      "name": "Memory Drain",
+      "description": "Steal memory fragments from target on hit.",
+      "type": "on_hit",
+      "chance": 0.3,
+      "stealAmount": 5,
+      "effect": "Steals memory fragments"
+    },
+    {
+      "id": "darkness_veil",
+      "name": "Darkness Veil",
+      "description": "Create a zone of darkness reducing enemy vision.",
+      "type": "area",
+      "cooldown": 20.0,
+      "radius": 150,
+      "duration": 8.0,
+      "effect": "Reduces player vision range by 50%"
+    },
+    {
+      "id": "crystal_parry",
+      "name": "Crystal Parry",
+      "description": "Perfectly block next attack and counter.",
+      "type": "counter",
+      "cooldown": 8.0,
+      "window": 0.5,
+      "counterDamage": 1.5,
+      "effect": "Block + counter attack"
+    },
+    {
+      "id": "refracting_slash",
+      "name": "Refracting Slash",
+      "description": "Slash that splits into multiple projectiles.",
+      "type": "projectile",
+      "cooldown": 5.0,
+      "projectileCount": 3,
+      "spread": 30,
+      "damage": 30,
+      "effect": "Triple projectile"
+    },
+    {
+      "id": "light_burst",
+      "name": "Light Burst",
+      "description": "Blind nearby enemies with intense light.",
+      "type": "burst",
+      "cooldown": 12.0,
+      "radius": 100,
+      "blindDuration": 3.0,
+      "effect": "AoE blind"
+    },
+    {
+      "id": "prism_split",
+      "name": "Prism Split",
+      "description": "When damaged, split into 2 copies with reduced health.",
+      "type": "passive",
+      "trigger": "on_damage",
+      "threshold": 50,
+      "splitCount": 2,
+      "healthPercent": 0.4,
+      "effect": "Split on heavy damage"
+    },
+    {
+      "id": "rainbow_beam",
+      "name": "Rainbow Beam",
+      "description": "Fire 7 colored beams, each with different effect.",
+      "type": "multi_beam",
+      "cooldown": 10.0,
+      "beams": 7,
+      "effects": ["fire", "ice", "lightning", "poison", "holy", "shadow", "void"],
+      "damage": 20,
+      "effect": "Random element per beam"
+    },
+    {
+      "id": "blinding_flash",
+      "name": "Blinding Flash",
+      "description": "Instant blind all enemies in large radius.",
+      "type": "burst",
+      "cooldown": 15.0,
+      "radius": 200,
+      "blindDuration": 4.0,
+      "effect": "Mass blind"
+    },
+    {
+      "id": "void_step",
+      "name": "Void Step",
+      "description": "Teleport behind target, ignoring obstacles.",
+      "type": "movement",
+      "cooldown": 4.0,
+      "range": 200,
+      "effect": "Teleport to target back"
+    },
+    {
+      "id": "erasure_touch",
+      "name": "Erasure Touch",
+      "description": "Attacks permanently reduce target's max health.",
+      "type": "on_hit",
+      "chance": 0.2,
+      "maxHealthReduction": 5,
+      "effect": "Permanent max HP reduction"
+    },
+    {
+      "id": "memory_void",
+      "name": "Memory Void",
+      "description": "Create a zone that silences and drains mana.",
+      "type": "area",
+      "cooldown": 15.0,
+      "radius": 120,
+      "duration": 6.0,
+      "manaDrainPerSec": 10,
+      "silence": true,
+      "effect": "Silence + mana drain zone"
+    },
+    {
+      "id": "reality_tear",
+      "name": "Reality Tear",
+      "description": "Tear open a portal that damages everything inside.",
+      "type": "area",
+      "cooldown": 20.0,
+      "radius": 80,
+      "duration": 4.0,
+      "damagePerSec": 30,
+      "pullForce": 50,
+      "effect": "Damaging vortex"
+    },
+    {
+      "id": "memory_surge",
+      "name": "Memory Surge",
+      "description": "Release stored memories as damaging waves.",
+      "type": "burst",
+      "cooldown": 8.0,
+      "waves": 3,
+      "radius": 150,
+      "damage": 40,
+      "effect": "3 expanding waves"
+    },
+    {
+      "id": "forgotten_army",
+      "name": "Forgotten Army",
+      "description": "Summon memory echoes to fight alongside.",
+      "type": "summon",
+      "cooldown": 30.0,
+      "summonCount": 4,
+      "summonType": "memoryEcho",
+      "duration": 20.0,
+      "effect": "Summons 4 memory echoes"
+    },
+    {
+      "id": "erasure_wave",
+      "name": "Erasure Wave",
+      "description": "Send a wave that deletes projectiles and damages.",
+      "type": "wave",
+      "cooldown": 12.0,
+      "width": 200,
+      "speed": 300,
+      "damage": 60,
+      "destroysProjectiles": true,
+      "effect": "Projectile destruction wave"
+    },
+    {
+      "id": "void_domain",
+      "name": "Void Domain",
+      "description": "Create a zone where the Forgotten gains power.",
+      "type": "area",
+      "cooldown": 25.0,
+      "radius": 300,
+      "duration": 15.0,
+      "effects": { "damageAmp": 1.5, "speedAmp": 1.3, "playerDebuff": true },
+      "effect": "Boss empowerment zone"
+    },
+    {
+      "id": "final_remembrance",
+      "name": "Final Remembrance",
+      "description": "Ultimate attack - attempt to erase player from memory.",
+      "type": "ultimate",
+      "cooldown": 40.0,
+      "castTime": 2.0,
+      "damage": 200,
+      "effect": "Near-death execution, instant kill if < 20% HP"
+    },
+    {
+      "id": "memory_judgment",
+      "name": "Memory Judgment",
+      "description": "Weigh the player's memories - damage based on memory count.",
+      "type": "special",
+      "cooldown": 10.0,
+      "baseDamage": 30,
+      "damagePerMemory": 2,
+      "effect": "Scales with player memory fragments"
+    },
+    {
+      "id": "reconstruction_beam",
+      "name": "Reconstruction Beam",
+      "description": "Beam that rewrites reality in its path.",
+      "type": "beam",
+      "cooldown": 15.0,
+      "range": 400,
+      "width": 40,
+      "damage": 80,
+      "terrainChange": true,
+      "effect": "Destructive beam + terrain modification"
+    },
+    {
+      "id": "timeline_shift",
+      "name": "Timeline Shift",
+      "description": "Shift between timelines, dodging all attacks briefly.",
+      "type": "movement",
+      "cooldown": 20.0,
+      "duration": 3.0,
+      "effect": "Invulnerable, can move through everything"
+    },
+    {
+      "id": "true_ending",
+      "name": "True Ending",
+      "description": "Rewrite the battle's outcome - heal self, damage player.",
+      "type": "ultimate",
+      "cooldown": 60.0,
+      "castTime": 3.0,
+      "selfHealPercent": 0.5,
+      "damage": 150,
+      "effect": "Massive heal + damage"
+    },
+    {
+      "id": "world_rebirth",
+      "name": "World Rebirth",
+      "description": "Final phase - reconstruct the arena itself.",
+      "type": "ultimate",
+      "cooldown": 90.0,
+      "castTime": 5.0,
+      "effect": "Transforms arena, new mechanics, true form reveal"
+    }
+  ]
+}

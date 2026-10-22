@@ -58,10 +58,16 @@ export class ActorRenderer implements IGameModule {
   private hudIconTextures = new Map<string, PIXI.Texture>();
   private hudMemoryText: PIXI.Text | null = null;
   private hudLevelText: PIXI.Text | null = null;
+  private hudCombatText: PIXI.Text | null = null;
+  private hudDepthText: PIXI.Text | null = null;
+  private damageLayer: PIXI.Container | null = null;
+  private damageTexts: PIXI.Text[] = [];
   private lastHudRatios: number[] = [];
   private lastHudLabels: string[] = [];
   private lastHudMemory = -1;
   private lastHudLevel = -1;
+  private lastHudCombat = '';
+  private lastHudDepth = -1;
 
   constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -82,6 +88,13 @@ export class ActorRenderer implements IGameModule {
     await this.loadPlayer(layer);
     await this.loadEnemies();
     await this.loadHud();
+
+    const effectsLayer = this.renderSystem.getLayer('effects');
+    if (effectsLayer) {
+      this.damageLayer = new PIXI.Container();
+      this.damageLayer.label = 'damage-numbers';
+      effectsLayer.addChild(this.damageLayer);
+    }
   }
 
   private async loadPlayer(layer: PIXI.Container): Promise<void> {
@@ -227,6 +240,32 @@ export class ActorRenderer implements IGameModule {
     this.hudLevelText.position.set(148, -20);
     this.hud.addChild(this.hudLevelText);
 
+    // Combo and Memory Surge feedback: two reward chains the player can read
+    // at a glance instead of inferring them from damage numbers.
+    this.hudCombatText = new PIXI.Text({
+      text: '',
+      style: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 12,
+        fill: 0xffd98a,
+        letterSpacing: 1,
+      },
+    });
+    this.hudCombatText.position.set(232, -20);
+    this.hud.addChild(this.hudCombatText);
+
+    this.hudDepthText = new PIXI.Text({
+      text: 'DEPTH 0',
+      style: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: 12,
+        fill: 0x9fe8ff,
+        letterSpacing: 1,
+      },
+    });
+    this.hudDepthText.position.set(360, -20);
+    this.hud.addChild(this.hudDepthText);
+
     const memoryIcon = this.hudIconTextures.get('memory_fragment');
     if (memoryIcon) {
       const icon = new PIXI.Sprite(memoryIcon);
@@ -255,7 +294,48 @@ export class ActorRenderer implements IGameModule {
 
     this.updatePlayer(deltaTime);
     this.updateEnemies(deltaTime);
+    this.updateDamageNumbers();
     this.updateHud();
+  }
+
+  /**
+   * Pooled floating damage text. CombatSystem owns the simulation data; this
+   * only projects each number into the effects layer and fades it out.
+   */
+  private updateDamageNumbers(): void {
+    if (!this.damageLayer) return;
+    const numbers = this.combatSystem.getDamageNumbers();
+
+    while (this.damageTexts.length < numbers.length) {
+      const text = new PIXI.Text({
+        text: '',
+        style: {
+          fontFamily: 'Inter, sans-serif',
+          fontSize: 16,
+          fill: 0xffffff,
+          stroke: { color: 0x0a0a0f, width: 3 },
+        },
+      });
+      text.anchor.set(0.5);
+      text.visible = false;
+      this.damageLayer.addChild(text);
+      this.damageTexts.push(text);
+    }
+
+    for (let i = 0; i < this.damageTexts.length; i++) {
+      const text = this.damageTexts[i];
+      const number = numbers[i];
+      if (!number) {
+        text.visible = false;
+        continue;
+      }
+      text.visible = true;
+      text.text = number.critical ? `${number.amount}!` : `${number.amount}`;
+      text.style.fill = number.critical ? 0xffd98a : 0xffffff;
+      text.scale.set(number.critical ? 1.25 : 1);
+      text.position.set(number.x, number.y - number.time * 24);
+      text.alpha = Math.max(0, 1 - number.time / 1.5);
+    }
   }
 
   private updatePlayer(deltaTime: number): void {
@@ -312,6 +392,10 @@ export class ActorRenderer implements IGameModule {
       actor.container.position.set(entity.position.x, entity.position.y + 6);
       actor.facing = entity.sprite.facing;
       actor.container.scale.x = entity.sprite.facing;
+      // Warm tint during the windup is the readable "attack is coming" cue;
+      // an elite keeps its authored color for the rest of the fight.
+      actor.sprite.tint =
+        entity.ai.attackPhase === 'windup' ? 0xffb066 : (entity.eliteColor ?? 0xffffff);
 
       const animation = this.isOneShotPlaying(actor) ? actor.current : this.enemyAnimation(entity);
       this.play(actor, animation);
@@ -464,6 +548,21 @@ export class ActorRenderer implements IGameModule {
       this.lastHudLevel = progression.level;
       this.hudLevelText.text = `LV ${progression.level}`;
     }
+
+    if (this.hudDepthText && this.lastHudDepth !== Math.floor(progression.deepestDepth)) {
+      this.lastHudDepth = Math.floor(progression.deepestDepth);
+      this.hudDepthText.text = `DEPTH ${this.lastHudDepth}`;
+    }
+
+    const chains = this.playerSystem.getCombatChains();
+    const parts: string[] = [];
+    if (chains.comboCount > 0) parts.push(`COMBO ${chains.comboCount}/${chains.comboMax}`);
+    if (chains.surgeStreak > 0) parts.push(`SURGE x${chains.surgeMultiplier.toFixed(2)}`);
+    const combatLabel = parts.join('  ');
+    if (this.hudCombatText && this.lastHudCombat !== combatLabel) {
+      this.lastHudCombat = combatLabel;
+      this.hudCombatText.text = combatLabel;
+    }
   }
 
   async shutdown(): Promise<void> {
@@ -477,6 +576,11 @@ export class ActorRenderer implements IGameModule {
     this.hud = null;
     this.hudMemoryText = null;
     this.hudLevelText = null;
+    this.hudCombatText = null;
+    this.hudDepthText = null;
+    this.damageLayer?.destroy({ children: true });
+    this.damageLayer = null;
+    this.damageTexts = [];
   }
 
   serialize(): ModuleState {

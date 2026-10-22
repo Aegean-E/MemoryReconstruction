@@ -196,6 +196,63 @@ describe('WorldSystem chunk streaming', () => {
     expect(unload).toHaveBeenCalledTimes(1);
   });
 
+  it('validates spawn positions against the tiles generated in the same chunk', async () => {
+    const { world } = makeWorld();
+    const emptyTiles = Array.from({ length: 16 }, () =>
+      Array.from({ length: 16 }, () => ({
+        type: 'empty' as const,
+        variant: 0,
+        height: 0,
+        properties: { solid: false },
+      }))
+    );
+    (world as any).generateTiles = () => emptyTiles;
+    (world as any).biomes = [
+      {
+        name: 'ruins',
+        weight: 100,
+        tilePalette: ['floor'],
+        entityTables: [{ entityType: 'scavenger', weight: 100, minDepth: 0, maxDepth: 100 }],
+        colorPalette: [0x111111],
+        musicTheme: 'exploration',
+        ambientSound: 'wind_ruins',
+      },
+    ];
+
+    const chunk = await (world as any).generateChunk(0, 0);
+
+    // Every tile is empty, so no spawn may pass validation. Before the chunk
+    // was registered first, all 10 attempts looked valid and enemies spawned.
+    expect(chunk.entities).toHaveLength(0);
+  });
+
+  it('emits chunk-derived depth when the player crosses a chunk boundary', () => {
+    const { world } = makeWorld();
+    const depths: number[] = [];
+    (world as any).eventBus.on('world:depthChanged', (data: { depth: number }) => {
+      depths.push(data.depth);
+    });
+    (world as any).ensureChunk = vi.fn();
+    (world as any).unloadDistantChunks = vi.fn();
+
+    (world as any).onPlayerMove({ x: 600, y: 0 });
+
+    expect(depths).toEqual([0.5]);
+  });
+
+  it('does not keep a forest spawn for the unimplemented ancientTree entity', () => {
+    const { world } = makeWorld();
+    (world as any).initializeBiomes();
+    const forest = (world as any).biomes.find(
+      (candidate: { name: string }) => candidate.name === 'forest'
+    );
+    expect(
+      forest.entityTables.some(
+        (table: { entityType: string }) => table.entityType === 'ancientTree'
+      )
+    ).toBe(false);
+  });
+
   it('hashes noise deterministically without a string cache', () => {
     const { world } = makeWorld();
     expect((world as any).getNoise(1.25, 2.5, 3)).toBe((world as any).getNoise(1.25, 2.5, 3));

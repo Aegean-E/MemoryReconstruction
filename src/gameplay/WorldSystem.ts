@@ -89,6 +89,8 @@ export class WorldSystem implements IGameModule {
   // Streaming checkpoint: chunk streaming only changes when the player's chunk changes.
   private lastChunkX: number | null = null;
   private lastChunkY: number | null = null;
+  // Chunk-derived depth (matching the entity spawn tables), emitted on crossings.
+  private lastDepth = 0;
 
   // Biomes
   private biomes: BiomeConfig[] = [];
@@ -161,7 +163,6 @@ export class WorldSystem implements IGameModule {
         entityTables: [
           { entityType: 'wildling', weight: 8, minDepth: 0, maxDepth: 15 },
           { entityType: 'spirit', weight: 4, minDepth: 10, maxDepth: 30 },
-          { entityType: 'ancientTree', weight: 1, minDepth: 20, maxDepth: 50 },
           { entityType: 'memoryFragment', weight: 3, minDepth: 0, maxDepth: 50 },
         ],
         colorPalette: [0x2d5016, 0x3d6b1f, 0x1b3a0f, 0x4e7b2a],
@@ -213,7 +214,7 @@ export class WorldSystem implements IGameModule {
         weight: 5,
         tilePalette: ['floor', 'platform', 'door', 'secret'],
         entityTables: [
-          { entityType: 'keeper', weight: 1, minDepth: 0, maxDepth: 10 },
+          { entityType: 'keeper', weight: 1, minDepth: 40, maxDepth: 100 },
           { entityType: 'memoryEcho', weight: 10, minDepth: 0, maxDepth: 50 },
           { entityType: 'memoryFragment', weight: 5, minDepth: 0, maxDepth: 50 },
         ],
@@ -243,6 +244,14 @@ export class WorldSystem implements IGameModule {
 
     // Unload distant chunks
     this.unloadDistantChunks(chunkX, chunkY);
+
+    // Depth uses the same chunk-unit formula as generateEntities(), so run
+    // progress and enemy scaling agree on what "depth 10" means.
+    const depth = Math.sqrt(chunkX * chunkX + chunkY * chunkY) * 0.5;
+    if (depth !== this.lastDepth) {
+      this.lastDepth = depth;
+      this.eventBus.emit('world:depthChanged', { depth, chunkX, chunkY });
+    }
 
     // Check biome transition
     this.checkBiomeTransition(data.x, data.y);
@@ -334,23 +343,25 @@ export class WorldSystem implements IGameModule {
     const biome = this.determineBiome(x, y);
     const biomeConfig = this.biomes.find((b) => b.name === biome)!;
 
-    // Generate tiles
+    // Generate tiles first and register the chunk before spawning entities:
+    // isValidSpawnPosition reads the chunk from this map, so setting it only
+    // after generation made every spawn position look valid (enemies could
+    // appear inside walls, water or hazards).
     const tiles = this.generateTiles(x, y, biomeConfig);
-
-    // Generate entities
-    const entities = this.generateEntities(x, y, biomeConfig);
-
     const chunk: ChunkData = {
       x,
       y,
       biome,
       tiles,
-      entities,
+      entities: [],
       generated: true,
       timestamp: Date.now(),
     };
-
     this.chunks.set(key, chunk);
+
+    // Generate entities against the real generated tiles.
+    chunk.entities = this.generateEntities(x, y, biomeConfig);
+
     this.loadedChunks.add(key);
 
     // Render chunk

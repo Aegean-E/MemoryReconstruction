@@ -5,14 +5,28 @@
     "baseDamage": 10,
     "invincibilityFrames": 0.5,
     "dashCooldown": 1.0,
-    "dashDistance": 150
+    "dashDistance": 150,
+    "dashStaminaCost": 40,
+    "staminaRegen": 20
   },
   "combat": {
     "hitPause": 0.05,
     "knockbackForce": 300,
     "criticalChance": 0.05,
     "criticalMultiplier": 2.0,
-    "staggerThreshold": 20
+    "staggerThreshold": 20,
+    "comboMax": 5,
+    "comboWindow": 2.0,
+    "comboDamageStep": 0.1,
+    "meleeArc": 120,
+    "meleeOffset": 20,
+    "meleeRange": 35,
+    "eliteMinDepth": 10,
+    "depthScaling": {
+      "healthPerDepth": 0.05,
+      "damagePerDepth": 0.025,
+      "rewardPerDepth": 0.1
+    }
   },
   "world": {
     "chunkSize": 512,
@@ -28,7 +42,10 @@
       "xpValue": 10,
       "pickupRadius": 48,
       "bobAmplitude": 4,
-      "bobSpeed": 3
+      "bobSpeed": 3,
+      "surgeWindow": 4,
+      "surgeStep": 0.25,
+      "surgeMaxStreak": 8
     },
     "abilityUnlocks": [
       { "level": 2, "ability": "heal" },
@@ -40,6 +57,7 @@
     "enabled": true,
     "permadeath": false,
     "metaProgression": true,
-    "runSeed": null
+    "runSeed": null,
+    "deathXpLoss": 0.25
   }
 }

@@ -51,6 +51,8 @@ export interface PlayerState {
   interacting: boolean;
   invincible: boolean;
   invincibilityTimer: number;
+  /** While positive, input no longer overwrites knockback velocity. */
+  knockbackTimer: number;
 }
 
 export interface Ability {
@@ -75,6 +77,10 @@ export interface InventoryItem {
   quantity: number;
   maxStack: number;
 }
+
+export type EquipmentSlot = 'weapon' | 'armor' | 'accessory';
+
+export type EquipmentState = Record<EquipmentSlot, InventoryItem | null>;
 
 export interface ProgressionData {
   level: number;
@@ -106,6 +112,7 @@ export class PlayerSystem implements IGameModule {
   private state!: PlayerState;
   private abilities = new Map<string, Ability>();
   private inventory: InventoryItem[] = [];
+  private equipment: EquipmentState = { weapon: null, armor: null, accessory: null };
   private progression!: ProgressionData;
 
   // Movement
@@ -116,7 +123,22 @@ export class PlayerSystem implements IGameModule {
   // Combat
   private attackTimer = 0;
   private comboCount = 0;
-  private lastAttackTime = 0;
+  private comboTimer = 0;
+
+  // Transient action states are driven by simulation time, never wall-clock
+  // timers: the game loop and headless replays must stay deterministic.
+  private simTime = 0;
+  private attackAnimTimer = 0;
+  private dashStateTimer = 0;
+  private interactTimer = 0;
+
+  // Memory Surge: chained pickups/kills within a window multiply fragment XP.
+  private surgeStreak = 0;
+  private surgeTimer = 0;
+
+  // A Keeper kill completes the current run once; another kill only counts
+  // after death starts a new run.
+  private runCompleted = false;
 
   // RNG for deterministic behavior
   private rng: () => number;
@@ -179,6 +201,7 @@ export class PlayerSystem implements IGameModule {
       interacting: false,
       invincible: false,
       invincibilityTimer: 0,
+      knockbackTimer: 0,
     };
   }
 
@@ -201,7 +224,9 @@ export class PlayerSystem implements IGameModule {
         type: 'active',
         cooldown: 0.3,
         currentCooldown: 0,
-        manaCost: 5,
+        // The basic attack is free. Mana is the resource for abilities, so a
+        // player never runs out of their primary weapon mid-fight.
+        manaCost: 0,
         level: 1,
         maxLevel: 5,
         unlocked: true,
@@ -272,7 +297,7 @@ export class PlayerSystem implements IGameModule {
     this.progression = {
       level: 1,
       experience: 0,
-      experienceToNext: 100,
+      experienceToNext: this.experienceForLevel(1),
       statPoints: 0,
       memoryFragments: 0,
       unlockedAbilities: ['dash', 'slash'],
@@ -302,13 +327,22 @@ export class PlayerSystem implements IGameModule {
     );
     this.eventBus.on('player:addItem', (data: any) => this.addItem(data.item));
     this.eventBus.on('player:grantLevel', () => this.onLevelUp());
+    // Hit-confirm: the combo chain advances only after CombatSystem reports
+    // that a swing connected, so whiffing cannot inflate damage.
+    this.eventBus.on('combat:attackResolved', (data: any) => this.onAttackResolved(data));
+    // Run telemetry: depth is chunk-derived and boss kills close a run.
+    this.eventBus.on('world:depthChanged', (data: any) => this.onDepthChanged(data));
+    this.eventBus.on('combat:bossDefeated', (data: any) => this.onBossDefeated(data));
 
     this.eventBus.emit('playerSystem:ready', { stats: this.stats });
   }
 
   update(deltaTime: number): void {
-    this.updateTimers(deltaTime);
+    this.simTime += deltaTime;
+    // Integrate movement before timers transition states, so the last frame of
+    // a dash still applies its full velocity.
     this.updateMovement(deltaTime);
+    this.updateTimers(deltaTime);
     this.updateAbilities(deltaTime);
     this.updateProgression(deltaTime);
     this.emitPlayerState();
@@ -323,6 +357,12 @@ export class PlayerSystem implements IGameModule {
       }
     }
 
+    // Knockback lock: keep the impulse alive for a few frames instead of
+    // letting the next movement update overwrite it instantly.
+    if (this.state.knockbackTimer > 0) {
+      this.state.knockbackTimer -= deltaTime;
+    }
+
     // Dash cooldown
     if (this.dashCooldownTimer > 0) {
       this.dashCooldownTimer -= deltaTime;
@@ -333,32 +373,66 @@ export class PlayerSystem implements IGameModule {
       this.attackTimer -= deltaTime;
     }
 
-    // Combo reset
-    if (Date.now() - this.lastAttackTime > 1000) {
-      this.comboCount = 0;
+    // Transient action states
+    if (this.attackAnimTimer > 0) {
+      this.attackAnimTimer -= deltaTime;
+      if (this.attackAnimTimer <= 0) this.state.attacking = false;
+    }
+    if (this.dashStateTimer > 0) {
+      this.dashStateTimer -= deltaTime;
+      if (this.dashStateTimer <= 0) {
+        this.state.dashing = false;
+        this.state.velocity.x *= 0.1;
+        this.state.velocity.y *= 0.1;
+      }
+    }
+    if (this.interactTimer > 0) {
+      this.interactTimer -= deltaTime;
+      if (this.interactTimer <= 0) this.state.interacting = false;
+    }
+
+    // Combo window: the chain drops when the player stops applying pressure
+    if (this.comboTimer > 0) {
+      this.comboTimer -= deltaTime;
+      if (this.comboTimer <= 0) this.comboCount = 0;
+    }
+
+    // Memory Surge window decays independently of the combo chain
+    if (this.surgeTimer > 0) {
+      this.surgeTimer -= deltaTime;
+      if (this.surgeTimer <= 0) this.surgeStreak = 0;
     }
   }
 
   private updateMovement(deltaTime: number): void {
-    if (!this.inputSystem) return;
+    // A dash owns the velocity for its whole duration; knockback also owns it
+    // briefly so a hit visibly shoves the player before control returns.
+    if (!this.state.dashing && this.state.knockbackTimer <= 0) {
+      if (!this.inputSystem) return;
 
-    const movement = this.inputSystem.getMovementVector();
+      const movement = this.inputSystem.getMovementVector();
 
-    // Apply movement velocity
-    if (movement.x !== 0 || movement.y !== 0) {
-      this.state.velocity.x = movement.x * this.stats.moveSpeed;
-      this.state.velocity.y = movement.y * this.stats.moveSpeed;
+      // Apply movement velocity
+      if (movement.x !== 0 || movement.y !== 0) {
+        this.state.velocity.x = movement.x * this.stats.moveSpeed;
+        this.state.velocity.y = movement.y * this.stats.moveSpeed;
 
-      // Update facing
-      if (movement.x !== 0) {
-        this.state.facing = movement.x > 0 ? 1 : -1;
+        // Update facing
+        if (movement.x !== 0) {
+          this.state.facing = movement.x > 0 ? 1 : -1;
+        }
+      } else {
+        // Deceleration
+        this.state.velocity.x *= 0.8;
+        this.state.velocity.y *= 0.8;
+        if (Math.abs(this.state.velocity.x) < 5) this.state.velocity.x = 0;
+        if (Math.abs(this.state.velocity.y) < 5) this.state.velocity.y = 0;
       }
-    } else {
-      // Deceleration
-      this.state.velocity.x *= 0.8;
-      this.state.velocity.y *= 0.8;
-      if (Math.abs(this.state.velocity.x) < 5) this.state.velocity.x = 0;
-      if (Math.abs(this.state.velocity.y) < 5) this.state.velocity.y = 0;
+    } else if (this.state.knockbackTimer > 0) {
+      // Friction while the impulse plays out, so knockback is a shove and not
+      // a teleport across the room.
+      this.state.velocity.x *= 0.9;
+      this.state.velocity.y *= 0.9;
     }
 
     // Collision-aware position integration (no async feedback loop)
@@ -410,11 +484,17 @@ export class PlayerSystem implements IGameModule {
     if (regen?.unlocked && regen.level > 0) {
       const healAmount = regen.level * 0.5 * deltaTime;
       this.heal(healAmount);
-      this.stats.mana = Math.min(
-        this.stats.maxMana,
-        this.stats.mana + regen.level * 0.2 * deltaTime
-      );
+      // Mana recovers fast enough that abilities are usable each fight, while
+      // their cooldowns still gate burst value.
+      const manaRegen = (1 + regen.level * 0.5) * deltaTime;
+      this.stats.mana = Math.min(this.stats.maxMana, this.stats.mana + manaRegen);
     }
+
+    // Stamina gates chained dashes; the dash cooldown still gates single ones.
+    this.stats.stamina = Math.min(
+      this.stats.maxStamina,
+      this.stats.stamina + this.config.player.staminaRegen * deltaTime
+    );
   }
 
   private updateProgression(deltaTime: number): void {
@@ -446,32 +526,53 @@ export class PlayerSystem implements IGameModule {
     if (this.stats.mana < slash.manaCost) return;
 
     this.stats.mana -= slash.manaCost;
-    this.attackTimer = slash.cooldown;
-    slash.currentCooldown = slash.cooldown;
+    const attackCooldown = slash.cooldown / Math.max(0.1, this.stats.attackSpeed);
+    this.attackTimer = attackCooldown;
+    slash.currentCooldown = attackCooldown;
     this.state.attacking = true;
-    this.comboCount++;
-    this.lastAttackTime = Date.now();
+    this.attackAnimTimer = 0.1;
+
+    // The combo count is the chain *already confirmed* by previous hits. A
+    // swing uses that multiplier; only a connecting hit extends the chain in
+    // onAttackResolved(), so attacking empty air cannot farm damage.
+    const comboMultiplier = 1 + this.comboCount * this.config.combat.comboDamageStep;
 
     // The combat system applies the critical multiplier, so the intent carries
     // base damage plus the crit flag instead of a pre-multiplied value.
     const isCrit = this.rng() < this.stats.critChance;
-    const damage = this.stats.damage * (1 + this.comboCount * 0.1);
+    const damage = this.stats.damage * comboMultiplier;
 
     this.eventBus.emit(GameEvents.COMBAT_ATTACK, {
       sourceId: 'player',
-      x: this.state.position.x + this.state.facing * 30,
+      x: this.state.position.x + this.state.facing * this.config.combat.meleeOffset,
       y: this.state.position.y,
-      radius: 60,
+      radius: this.config.combat.meleeRange,
       damage,
       critical: isCrit,
       knockbackForce: this.config.combat.knockbackForce,
       statusEffects: [],
+      facing: this.state.facing,
+      arc: this.config.combat.meleeArc,
+      combo: this.comboCount,
     });
+  }
 
-    // Reset attack state after short delay
-    setTimeout(() => {
-      this.state.attacking = false;
-    }, 100);
+  /** Called once per resolved swing, after CombatSystem counts actual hits. */
+  private onAttackResolved(data: { sourceId?: string; hits?: number; ultimate?: boolean }): void {
+    if (data?.sourceId !== 'player') return;
+    if (typeof data.hits !== 'number' || !Number.isFinite(data.hits) || data.hits <= 0) return;
+
+    const comboMax = this.config.combat.comboMax;
+    this.comboCount = Math.min(this.comboCount + 1, comboMax);
+    this.comboTimer = this.config.combat.comboWindow;
+
+    this.eventBus.emit('player:combo', {
+      count: this.comboCount,
+      max: comboMax,
+      damageMultiplier: 1 + this.comboCount * this.config.combat.comboDamageStep,
+      hits: data.hits,
+      ultimate: Boolean(data.ultimate),
+    });
   }
 
   private onDash(): void {
@@ -479,6 +580,9 @@ export class PlayerSystem implements IGameModule {
 
     const dash = this.abilities.get('dash');
     if (!dash?.unlocked) return;
+
+    const staminaCost = this.config.player.dashStaminaCost;
+    if (this.stats.stamina < staminaCost) return;
 
     const movement = this.inputSystem?.getMovementVector() ?? { x: 0, y: 0 };
 
@@ -498,10 +602,14 @@ export class PlayerSystem implements IGameModule {
     this.state.dashing = true;
     this.dashCooldownTimer = this.stats.dashCooldown;
     dash.currentCooldown = dash.cooldown;
+    this.stats.stamina = Math.max(0, this.stats.stamina - staminaCost);
 
-    // Dash velocity
-    this.state.velocity.x = movement.x * this.stats.dashDistance * 10;
-    this.state.velocity.y = movement.y * this.stats.dashDistance * 10;
+    // Constant dash speed over a fixed duration covers exactly dashDistance.
+    const dashDuration = 0.15;
+    this.dashStateTimer = dashDuration;
+    const dashSpeed = this.stats.dashDistance / dashDuration;
+    this.state.velocity.x = movement.x * dashSpeed;
+    this.state.velocity.y = movement.y * dashSpeed;
 
     // Invincibility during dash
     this.state.invincible = true;
@@ -515,38 +623,32 @@ export class PlayerSystem implements IGameModule {
       scale: 1.5,
       tint: 0x00ffff,
     });
-
-    // End dash after short time
-    setTimeout(() => {
-      this.state.dashing = false;
-      this.state.velocity.x *= 0.1;
-      this.state.velocity.y *= 0.1;
-    }, 150);
   }
 
   private onInteract(): void {
     this.state.interacting = true;
+    this.interactTimer = 0.2;
     this.eventBus.emit('player:interactCheck', {
       x: this.state.position.x,
       y: this.state.position.y,
       facing: this.state.facing,
     });
-
-    setTimeout(() => {
-      this.state.interacting = false;
-    }, 200);
   }
 
   private onDamage(data: {
     amount: number;
     source: string;
     knockback?: { x: number; y: number };
+    critical?: boolean;
   }): void {
     if (this.state.invincible) return;
 
-    // Calculate damage reduction
+    // Enemy criticals use the global combat multiplier. Player gear may raise
+    // the player's outgoing crit multiplier, but it must not make incoming
+    // enemy crits stronger.
+    const criticalMultiplier = data.critical ? this.config.combat.criticalMultiplier : 1;
     const reduction = this.stats.armor / (this.stats.armor + 100);
-    const finalDamage = Math.max(1, Math.floor(data.amount * (1 - reduction)));
+    const finalDamage = Math.max(1, Math.floor(data.amount * criticalMultiplier * (1 - reduction)));
 
     this.stats.health = Math.max(0, this.stats.health - finalDamage);
 
@@ -554,10 +656,19 @@ export class PlayerSystem implements IGameModule {
     this.state.invincible = true;
     this.state.invincibilityTimer = this.config.player.invincibilityFrames;
 
-    // Knockback
+    // Taking a hit breaks both reward chains: aggressive play is rewarded,
+    // sloppy play is punished.
+    this.comboCount = 0;
+    this.comboTimer = 0;
+    this.surgeStreak = 0;
+    this.surgeTimer = 0;
+
+    // Knockback: hold control for a short window so the shove reads on screen
+    // instead of being erased by the next input frame.
     if (data.knockback) {
       this.state.velocity.x += data.knockback.x;
       this.state.velocity.y += data.knockback.y;
+      this.state.knockbackTimer = 0.25;
     }
 
     // Visual feedback
@@ -574,40 +685,105 @@ export class PlayerSystem implements IGameModule {
       this.onDeath();
     }
 
-    this.eventBus.emit(GameEvents.PLAYER_DAMAGE, {
-      amount: finalDamage,
-      health: this.stats.health,
-      maxHealth: this.stats.maxHealth,
-    });
+    // PLAYER_DAMAGE is an input command (CombatSystem emits it when an attack
+    // connects). Do not re-emit it here: a self-subscribed re-emit would run
+    // this handler twice per hit. Health is published via player:stateUpdate.
   }
 
   private onHeal(data: { amount: number; source: string }): void {
     this.stats.health = Math.min(this.stats.maxHealth, this.stats.health + data.amount);
-    this.eventBus.emit(GameEvents.PLAYER_HEAL, {
-      amount: data.amount,
-      health: this.stats.health,
-      maxHealth: this.stats.maxHealth,
+    // Likewise, PLAYER_HEAL is an input command and must not be re-emitted:
+    // this handler used to emit it, which recursed until the stack overflowed.
+  }
+
+  private onDepthChanged(data: { depth?: number }): void {
+    if (typeof data?.depth !== 'number' || !Number.isFinite(data.depth)) return;
+    if (data.depth <= this.progression.deepestDepth) return;
+    this.progression.deepestDepth = data.depth;
+    this.eventBus.emit('player:depthChanged', { depth: data.depth });
+  }
+
+  private onBossDefeated(data: { type?: string }): void {
+    if (data?.type !== 'keeper') return;
+    if (this.runCompleted) return;
+    this.runCompleted = true;
+    this.progression.completedRuns++;
+    this.eventBus.emit('player:runCompleted', {
+      completedRuns: this.progression.completedRuns,
+      deepestDepth: this.progression.deepestDepth,
+      level: this.progression.level,
+      memoryFragments: this.progression.memoryFragments,
     });
   }
 
   private onDeath(): void {
     this.progression.deaths++;
+    this.runCompleted = false;
+    const permadeath = this.config.roguelike.permadeath;
+
+    // A normal death is a setback: blur part of the current level's unspent XP
+    // while keeping levels, fragments and meta progress. Permadeath resets the
+    // run itself but keeps the meta record (deaths, depth, completed runs).
+    const lostXp = permadeath
+      ? this.progression.experience
+      : Math.floor(this.progression.experience * this.config.roguelike.deathXpLoss);
+
+    if (permadeath) {
+      this.resetRunState();
+    } else {
+      this.progression.experience = Math.max(0, this.progression.experience - lostXp);
+    }
+
     this.eventBus.emit(GameEvents.PLAYER_DEATH, {
       position: this.state.position,
       depth: this.progression.deepestDepth,
+      lostXp,
+      permadeath,
+    });
+    this.eventBus.emit('player:runEnded', {
+      deaths: this.progression.deaths,
+      deepestDepth: this.progression.deepestDepth,
+      lostXp,
+      permadeath,
     });
 
-    // Respawn logic would go here
     this.respawn();
+  }
+
+  /** Reset run-scoped progression while preserving meta statistics. */
+  private resetRunState(): void {
+    this.initializeStats();
+    this.initializeAbilities();
+    this.progression.level = 1;
+    this.progression.experience = 0;
+    this.progression.experienceToNext = this.experienceForLevel(1);
+    this.progression.statPoints = 0;
+    this.progression.memoryFragments = 0;
+    this.progression.unlockedAbilities = ['dash', 'slash'];
+    this.inventory = [];
+    this.equipment = { weapon: null, armor: null, accessory: null };
+    this.runCompleted = false;
   }
 
   private respawn(): void {
     this.stats.health = this.stats.maxHealth;
     this.stats.mana = this.stats.maxMana;
+    this.stats.stamina = this.stats.maxStamina;
     this.state.position = { x: 0, y: 0 };
     this.state.velocity = { x: 0, y: 0 };
     this.state.invincible = true;
     this.state.invincibilityTimer = 3.0;
+    this.state.knockbackTimer = 0;
+    this.state.dashing = false;
+    this.state.attacking = false;
+    this.state.interacting = false;
+    this.dashStateTimer = 0;
+    this.attackAnimTimer = 0;
+    this.interactTimer = 0;
+    this.comboCount = 0;
+    this.comboTimer = 0;
+    this.surgeStreak = 0;
+    this.surgeTimer = 0;
   }
 
   private useAbility(abilityId: string): void {
@@ -685,12 +861,30 @@ export class PlayerSystem implements IGameModule {
     const fragments = Math.floor(amount);
     if (fragments <= 0) return;
 
+    const fragmentConfig = this.config.progression.fragments;
+
+    // Memory Surge: pickups and kills chained inside the window compound the
+    // reward, so a player who keeps moving and fighting is paid more than one
+    // who stops to rest. The chain breaks on the timer or on taking damage.
+    if (this.surgeTimer > 0) {
+      this.surgeStreak = Math.min(this.surgeStreak + 1, fragmentConfig.surgeMaxStreak);
+    } else {
+      this.surgeStreak = 1;
+    }
+    this.surgeTimer = fragmentConfig.surgeWindow;
+
+    const surgeMultiplier = 1 + (this.surgeStreak - 1) * fragmentConfig.surgeStep;
+
     this.progression.memoryFragments += fragments;
-    this.addExperience(this.config.progression.fragments.xpValue * fragments);
+    this.addExperience(fragmentConfig.xpValue * fragments * surgeMultiplier);
 
     this.eventBus.emit('player:memoryChanged', {
       memoryFragments: this.progression.memoryFragments,
       amount: fragments,
+    });
+    this.eventBus.emit('player:memorySurge', {
+      streak: this.surgeStreak,
+      multiplier: surgeMultiplier,
     });
   }
 
@@ -699,7 +893,11 @@ export class PlayerSystem implements IGameModule {
 
     this.progression.experience += amount;
 
-    while (this.progression.experience >= this.progression.experienceToNext) {
+    const maxLevel = this.config.progression.maxLevel;
+    while (
+      this.progression.experience >= this.progression.experienceToNext &&
+      this.progression.level < maxLevel
+    ) {
       this.progression.experience -= this.progression.experienceToNext;
       this.levelUp();
     }
@@ -710,10 +908,28 @@ export class PlayerSystem implements IGameModule {
     });
   }
 
+  /**
+   * XP required to reach the next level. The authored curve wins while it
+   * covers the level; past its end the requirement keeps growing by 1.5x.
+   * `curve[level]` is the cost of advancing from `level` to `level + 1`.
+   */
+  private experienceForLevel(level: number): number {
+    const curve = this.config.progression.xpCurve;
+    if (level < curve.length && curve[level] > 0) {
+      return curve[level];
+    }
+
+    let value = curve.length > 0 ? curve[curve.length - 1] || 100 : 100;
+    for (let current = curve.length - 1; current < level; current++) {
+      value = Math.floor(value * 1.5);
+    }
+    return value;
+  }
+
   private levelUp(): void {
     this.progression.level++;
     this.progression.statPoints += this.config.progression.statPointsPerLevel;
-    this.progression.experienceToNext = Math.floor(this.progression.experienceToNext * 1.5);
+    this.progression.experienceToNext = this.experienceForLevel(this.progression.level);
 
     // Increase base stats
     this.stats.maxHealth += 10;
@@ -747,15 +963,119 @@ export class PlayerSystem implements IGameModule {
   }
 
   private addItem(item: InventoryItem): void {
-    // Check for stacking
-    const existing = this.inventory.find((i) => i.id === item.id && i.maxStack > 1);
-    if (existing) {
-      existing.quantity = Math.min(existing.maxStack, existing.quantity + item.quantity);
-    } else {
-      this.inventory.push({ ...item });
+    const maxStack = Math.max(1, Math.floor(Number(item.maxStack) || 1));
+    let remaining = Math.max(1, Math.floor(Number(item.quantity) || 1));
+
+    // Fill existing stacks first, then create as many stacks as the quantity
+    // needs. Loot tables can award several maxStack-1 items at once, and those
+    // must become separate inventory entries instead of an illegal stack.
+    for (const existing of this.inventory) {
+      if (remaining <= 0) break;
+      if (existing.id !== item.id || existing.maxStack <= 1) continue;
+      const space = existing.maxStack - existing.quantity;
+      if (space <= 0) continue;
+      const added = Math.min(space, remaining);
+      existing.quantity += added;
+      remaining -= added;
+    }
+
+    while (remaining > 0) {
+      const stack = Math.min(maxStack, remaining);
+      this.inventory.push({ ...item, maxStack, quantity: stack });
+      remaining -= stack;
     }
 
     this.eventBus.emit('player:inventoryChanged', { inventory: this.inventory });
+  }
+
+  useItem(itemId: string): boolean {
+    const item = this.inventory.find((entry) => entry.id === itemId);
+    if (!item) return false;
+
+    const stats = item.stats as Record<string, any>;
+    let consumed = false;
+
+    const heal = Number(stats.heal) || 0;
+    if (heal > 0 && this.stats.health < this.stats.maxHealth) {
+      this.stats.health = Math.min(this.stats.maxHealth, this.stats.health + heal);
+      consumed = true;
+    }
+
+    const manaRestore = Number(stats.manaRestore) || 0;
+    if (manaRestore > 0 && this.stats.mana < this.stats.maxMana) {
+      this.stats.mana = Math.min(this.stats.maxMana, this.stats.mana + manaRestore);
+      consumed = true;
+    }
+
+    const invincibility = Number(stats.invincibility) || 0;
+    if (invincibility > 0) {
+      this.state.invincible = true;
+      this.state.invincibilityTimer = Math.max(this.state.invincibilityTimer, invincibility);
+      consumed = true;
+    }
+
+    const fragmentValue = Number(stats.fragmentValue) || 0;
+    if (fragmentValue > 0) {
+      this.grantMemoryFragments(fragmentValue);
+      consumed = true;
+    }
+
+    if (item.type === 'memory') {
+      this.grantMemoryFragments(Math.max(1, Math.floor(Number(stats.memoryValue) || 1)));
+      if (typeof stats.unlocksAbility === 'string') {
+        this.unlockAbility(stats.unlocksAbility);
+      }
+      consumed = true;
+    }
+
+    if (!consumed) return false;
+
+    this.consumeItem(item);
+    this.eventBus.emit('player:itemUsed', { itemId: item.id, name: item.name });
+    return true;
+  }
+
+  equipItem(itemId: string): boolean {
+    const item = this.inventory.find((entry) => entry.id === itemId);
+    if (!item || (item.type !== 'weapon' && item.type !== 'armor' && item.type !== 'accessory')) {
+      return false;
+    }
+
+    const slot: EquipmentSlot = item.type;
+    const previous = this.equipment[slot];
+    this.consumeItem(item, 1, false);
+    this.equipment[slot] = { ...item, quantity: 1 };
+    if (previous) this.addItem(previous);
+    this.recalculateDerivedStats();
+    this.eventBus.emit('player:equipmentChanged', {
+      equipment: this.equipment,
+      slot,
+      item: this.equipment[slot],
+    });
+    this.eventBus.emit('player:inventoryChanged', { inventory: this.inventory });
+    return true;
+  }
+
+  unequipSlot(slot: EquipmentSlot): boolean {
+    const item = this.equipment[slot];
+    if (!item) return false;
+    this.equipment[slot] = null;
+    this.addItem(item);
+    this.recalculateDerivedStats();
+    this.eventBus.emit('player:equipmentChanged', {
+      equipment: this.equipment,
+      slot,
+      item: null,
+    });
+    return true;
+  }
+
+  private consumeItem(item: InventoryItem, amount = 1, emit = true): void {
+    item.quantity -= amount;
+    if (item.quantity <= 0) {
+      this.inventory = this.inventory.filter((entry) => entry !== item);
+    }
+    if (emit) this.eventBus.emit('player:inventoryChanged', { inventory: this.inventory });
   }
 
   // Public API
@@ -772,8 +1092,34 @@ export class PlayerSystem implements IGameModule {
   getInventory(): Readonly<InventoryItem[]> {
     return this.inventory;
   }
+
+  getEquipment(): Readonly<EquipmentState> {
+    return this.equipment;
+  }
   getProgression(): Readonly<ProgressionData> {
     return this.progression;
+  }
+
+  /** Read-only view for HUD feedback on the two reward chains. */
+  getCombatChains(): Readonly<{
+    comboCount: number;
+    comboMax: number;
+    comboTimer: number;
+    comboTimerMax: number;
+    surgeStreak: number;
+    surgeMultiplier: number;
+    surgeTimer: number;
+  }> {
+    const fragments = this.config.progression.fragments;
+    return {
+      comboCount: this.comboCount,
+      comboMax: this.config.combat.comboMax,
+      comboTimer: this.comboTimer,
+      comboTimerMax: this.config.combat.comboWindow,
+      surgeStreak: this.surgeStreak,
+      surgeMultiplier: this.surgeStreak > 0 ? 1 + (this.surgeStreak - 1) * fragments.surgeStep : 1,
+      surgeTimer: this.surgeTimer,
+    };
   }
 
   collectMemoryFragments(amount = 1): void {
@@ -793,11 +1139,60 @@ export class PlayerSystem implements IGameModule {
   }
 
   private recalculateDerivedStats(): void {
-    this.stats.damage = this.config.player.baseDamage + this.stats.strength * 2;
-    this.stats.moveSpeed = this.config.player.baseSpeed + this.stats.dexterity * 2;
-    this.stats.armor = this.stats.vitality * 3;
-    this.stats.resistance = this.stats.intelligence * 2;
-    this.stats.critChance = this.config.combat.criticalChance + this.stats.dexterity * 0.005;
+    // Attribute bonuses are measured from the starting value of 10, so the
+    // level-1 stat block (damage 10, armor 0, speed 200) matches the formula
+    // exactly. Spending the first stat point no longer causes a sudden jump.
+    const levelDamageBonus = (this.progression.level - 1) * 2;
+    const gear = {
+      damage: 0,
+      armor: 0,
+      resistance: 0,
+      moveSpeed: 0,
+      critChance: 0,
+      critMultiplier: 0,
+      attackSpeed: 0,
+      mana: 0,
+      dashCooldownReduction: 0,
+      dashDistance: 0,
+    };
+
+    for (const item of Object.values(this.equipment)) {
+      if (!item) continue;
+      const stats = item.stats ?? {};
+      gear.damage += Number(stats.damage) || 0;
+      gear.armor += Number(stats.armor) || 0;
+      gear.resistance += Number(stats.resistance) || 0;
+      gear.moveSpeed += Number(stats.moveSpeed) || 0;
+      gear.critChance += Number(stats.critChance) || 0;
+      gear.critMultiplier += Number(stats.critMultiplier) || 0;
+      gear.mana += Number(stats.mana) || 0;
+      gear.dashCooldownReduction += Number(stats.dashCooldownReduction) || 0;
+      gear.dashDistance += Number(stats.dashDistance) || 0;
+      // Weapon `speed` is authored as a multiplier (1.5 = 50% faster).
+      const speed = Number(stats.speed);
+      if (Number.isFinite(speed) && speed > 0) gear.attackSpeed += speed - 1;
+    }
+
+    this.stats.damage =
+      this.config.player.baseDamage +
+      (this.stats.strength - 10) * 2 +
+      levelDamageBonus +
+      gear.damage;
+    this.stats.moveSpeed =
+      this.config.player.baseSpeed + (this.stats.dexterity - 10) * 2 + gear.moveSpeed;
+    this.stats.armor = (this.stats.vitality - 10) * 3 + gear.armor;
+    this.stats.resistance = (this.stats.intelligence - 10) * 2 + gear.resistance;
+    this.stats.critChance =
+      this.config.combat.criticalChance + (this.stats.dexterity - 10) * 0.005 + gear.critChance;
+    this.stats.critMultiplier = this.config.combat.criticalMultiplier + gear.critMultiplier;
+    this.stats.attackSpeed = Math.max(0.1, 1 + gear.attackSpeed);
+    this.stats.dashCooldown = Math.max(
+      0.1,
+      this.config.player.dashCooldown * (1 - Math.min(0.9, gear.dashCooldownReduction))
+    );
+    this.stats.dashDistance = this.config.player.dashDistance + gear.dashDistance;
+    this.stats.maxMana = 50 + (this.progression.level - 1) * 5 + gear.mana;
+    this.stats.mana = Math.min(this.stats.mana, this.stats.maxMana);
   }
 
   unlockAbility(abilityId: string): boolean {
@@ -832,7 +1227,15 @@ export class PlayerSystem implements IGameModule {
         state: this.state,
         abilities: Array.from(this.abilities.entries()),
         inventory: this.inventory,
+        equipment: this.equipment,
         progression: this.progression,
+        runCompleted: this.runCompleted,
+        combatChains: {
+          comboCount: this.comboCount,
+          comboTimer: this.comboTimer,
+          surgeStreak: this.surgeStreak,
+          surgeTimer: this.surgeTimer,
+        },
       },
       checksum: 'player',
     };
@@ -843,7 +1246,24 @@ export class PlayerSystem implements IGameModule {
     if (state.data.state) this.state = { ...this.state, ...state.data.state };
     if (state.data.abilities) this.abilities = new Map(state.data.abilities);
     if (state.data.inventory) this.inventory = state.data.inventory;
+    if (state.data.equipment) {
+      this.equipment = {
+        weapon: state.data.equipment.weapon ?? null,
+        armor: state.data.equipment.armor ?? null,
+        accessory: state.data.equipment.accessory ?? null,
+      };
+    }
     if (state.data.progression)
       this.progression = { ...this.progression, ...state.data.progression };
+    if (typeof state.data.runCompleted === 'boolean') {
+      this.runCompleted = state.data.runCompleted;
+    }
+    const chains = state.data.combatChains;
+    if (chains) {
+      if (Number.isFinite(chains.comboCount)) this.comboCount = chains.comboCount;
+      if (Number.isFinite(chains.comboTimer)) this.comboTimer = chains.comboTimer;
+      if (Number.isFinite(chains.surgeStreak)) this.surgeStreak = chains.surgeStreak;
+      if (Number.isFinite(chains.surgeTimer)) this.surgeTimer = chains.surgeTimer;
+    }
   }
 }

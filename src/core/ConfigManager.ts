@@ -240,6 +240,8 @@ export const ConfigSchemas = {
       invincibilityFrames: z.number().default(0.5),
       dashCooldown: z.number().default(1.0),
       dashDistance: z.number().default(150),
+      dashStaminaCost: z.number().default(40),
+      staminaRegen: z.number().default(20),
     }),
     combat: z.object({
       hitPause: z.number().default(0.05),
@@ -247,6 +249,20 @@ export const ConfigSchemas = {
       criticalChance: z.number().default(0.05),
       criticalMultiplier: z.number().default(2.0),
       staggerThreshold: z.number().default(20),
+      comboMax: z.number().int().positive().default(5),
+      comboWindow: z.number().positive().default(2.0),
+      comboDamageStep: z.number().default(0.1),
+      meleeArc: z.number().min(1).max(360).default(120),
+      meleeOffset: z.number().min(0).default(20),
+      meleeRange: z.number().positive().default(35),
+      eliteMinDepth: z.number().min(0).default(10),
+      depthScaling: z
+        .object({
+          healthPerDepth: z.number().default(0.05),
+          damagePerDepth: z.number().default(0.025),
+          rewardPerDepth: z.number().default(0.1),
+        })
+        .default({}),
     }),
     world: z.object({
       chunkSize: z.number().default(512),
@@ -264,6 +280,9 @@ export const ConfigSchemas = {
           pickupRadius: z.number().positive().default(48),
           bobAmplitude: z.number().nonnegative().default(4),
           bobSpeed: z.number().nonnegative().default(3),
+          surgeWindow: z.number().positive().default(4),
+          surgeStep: z.number().default(0.25),
+          surgeMaxStreak: z.number().int().positive().default(8),
         })
         .default({}),
       abilityUnlocks: z
@@ -284,6 +303,8 @@ export const ConfigSchemas = {
       permadeath: z.boolean().default(false),
       metaProgression: z.boolean().default(true),
       runSeed: z.number().nullable().optional(),
+      // Fraction of the current level's unspent XP lost on death.
+      deathXpLoss: z.number().min(0).max(1).default(0.25),
     }),
   }),
 

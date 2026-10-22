@@ -23,12 +23,19 @@ export interface FragmentSpawn {
   x: number;
   y: number;
   chunkKey: string;
+  /** Memory fragments granted on pickup; dropped loot can be worth more. */
+  amount?: number;
+  /** Seconds before the pickup disappears; 0 means it lives with the chunk. */
+  lifetime?: number;
+  /** Non-currency item payload; when present the pickup grants inventory. */
+  item?: Record<string, any>;
 }
 
 interface FragmentView extends FragmentSpawn {
   sprite: PIXI.Sprite;
   baseY: number;
   phase: number;
+  remainingLifetime: number;
 }
 
 export function fragmentSpawnsFromChunk(chunk: ChunkData): FragmentSpawn[] {
@@ -58,6 +65,78 @@ export function isWithinPickupRadius(
   return dx * dx + dy * dy <= radius * radius;
 }
 
+/**
+ * Convert a combat `item:drop` event into a transient world pickup. Drops are
+ * intentionally not persisted in the collected set: they are temporary loot,
+ * not authored fragments that must stay collected across chunk reloads.
+ */
+export function dropSpawnFromEvent(
+  data: {
+    x?: number;
+    y?: number;
+    item?: {
+      id?: string;
+      type?: string;
+      stats?: { fragmentValue?: number; memoryValue?: number };
+      quantity?: number;
+      [key: string]: any;
+    };
+  },
+  id: string
+): FragmentSpawn | null {
+  if (
+    !data ||
+    typeof data.x !== 'number' ||
+    typeof data.y !== 'number' ||
+    !Number.isFinite(data.x) ||
+    !Number.isFinite(data.y) ||
+    !data.item
+  ) {
+    return null;
+  }
+
+  const quantity = Math.max(1, Math.floor(Number(data.item.quantity ?? 1)) || 1);
+
+  // Currency-like memories become direct memory pickups. Every other authored
+  // item is routed to the player's inventory with its rolled quantity.
+  if (data.item.id === 'fragment_shard') {
+    const shardValue = Math.max(1, Math.floor(Number(data.item.stats?.fragmentValue ?? 1)) || 1);
+    return {
+      id,
+      x: data.x,
+      y: data.y,
+      chunkKey: '',
+      amount: shardValue * quantity,
+      lifetime: 30,
+    };
+  }
+
+  if (data.item.id === 'memory_fragment') {
+    // Authored memory items carry a *fragment value* (10 per fragment, the
+    // same unit as 10 shards). Honor it instead of treating one item as one
+    // fragment, which silently under-valued every loot drop.
+    const value = Math.max(1, Math.floor(Number(data.item.stats?.memoryValue ?? 1)) || 1);
+    return {
+      id,
+      x: data.x,
+      y: data.y,
+      chunkKey: '',
+      amount: value * quantity,
+      lifetime: 30,
+    };
+  }
+
+  return {
+    id,
+    x: data.x,
+    y: data.y,
+    chunkKey: '',
+    amount: quantity,
+    lifetime: 30,
+    item: { ...data.item, quantity },
+  };
+}
+
 export class MemoryFragmentSystem implements IGameModule {
   readonly name = 'memoryFragmentSystem';
   readonly version = '1.0.0';
@@ -74,6 +153,7 @@ export class MemoryFragmentSystem implements IGameModule {
   private texture: PIXI.Texture | null = null;
   private fragments = new Map<string, FragmentView>();
   private collected = new Set<string>();
+  private dropCounter = 0;
   private elapsed = 0;
 
   constructor(eventBus: EventBus, config: GameplayConfig) {
@@ -92,6 +172,7 @@ export class MemoryFragmentSystem implements IGameModule {
 
     this.eventBus.on('world:chunkGenerated', (data: any) => this.syncChunk(data.chunk));
     this.eventBus.on('world:chunkUnloaded', (data: any) => this.clearChunk(`${data.x},${data.y}`));
+    this.eventBus.on('item:drop', (data: any) => this.onItemDrop(data));
 
     this.eventBus.emit('memoryFragmentSystem:ready', {
       collectedCount: this.collected.size,
@@ -139,7 +220,14 @@ export class MemoryFragmentSystem implements IGameModule {
       sprite,
       baseY: spawn.y,
       phase: (this.fragments.size * 1.7) % (Math.PI * 2),
+      remainingLifetime: spawn.lifetime ?? 0,
     });
+  }
+
+  private onItemDrop(data: any): void {
+    if (!this.layer) return;
+    const spawn = dropSpawnFromEvent(data, `drop:${++this.dropCounter}`);
+    if (spawn) this.addView(spawn);
   }
 
   update(deltaTime: number): void {
@@ -150,6 +238,15 @@ export class MemoryFragmentSystem implements IGameModule {
     const settings = this.config.progression.fragments;
 
     for (const fragment of Array.from(this.fragments.values())) {
+      if (fragment.remainingLifetime > 0) {
+        fragment.remainingLifetime -= deltaTime;
+        if (fragment.remainingLifetime <= 0) {
+          fragment.sprite.destroy();
+          this.fragments.delete(fragment.id);
+          continue;
+        }
+      }
+
       fragment.sprite.y =
         fragment.baseY +
         Math.sin(this.elapsed * settings.bobSpeed + fragment.phase) * settings.bobAmplitude;
@@ -162,10 +259,17 @@ export class MemoryFragmentSystem implements IGameModule {
 
   private collect(fragment: FragmentView): void {
     this.fragments.delete(fragment.id);
-    this.collected.add(fragment.id);
+    // Authored fragments persist as collected; transient drops do not.
+    if (fragment.chunkKey !== '') this.collected.add(fragment.id);
     fragment.sprite.destroy();
 
-    this.eventBus.emit('player:addMemory', { amount: 1 });
+    if (fragment.item) {
+      this.eventBus.emit('player:addItem', {
+        item: { ...fragment.item, quantity: fragment.amount ?? 1 },
+      });
+    } else {
+      this.eventBus.emit('player:addMemory', { amount: fragment.amount ?? 1 });
+    }
     this.eventBus.emit('memory:fragmentCollected', {
       id: fragment.id,
       x: fragment.x,

@@ -5,6 +5,7 @@ import { PlayerSystem } from '@gameplay/PlayerSystem';
 import gameplayConfigJson from '@data/gameplay.config.json';
 import {
   MemoryFragmentSystem,
+  dropSpawnFromEvent,
   fragmentSpawnsFromChunk,
   isWithinPickupRadius,
 } from '@gameplay/MemoryFragmentSystem';
@@ -100,6 +101,41 @@ describe('memory fragment world helpers', () => {
     expect(isWithinPickupRadius({ x: 0, y: 0 }, { x: 47, y: 0 }, 48)).toBe(true);
     expect(isWithinPickupRadius({ x: 0, y: 0 }, { x: 48, y: 0 }, 48)).toBe(true);
     expect(isWithinPickupRadius({ x: 0, y: 0 }, { x: 49, y: 0 }, 48)).toBe(false);
+  });
+
+  it('routes currency loot to memory and equipment loot to inventory', () => {
+    const fragment = dropSpawnFromEvent(
+      {
+        x: 5,
+        y: 6,
+        item: {
+          id: 'memory_fragment',
+          type: 'memory',
+          stats: { memoryValue: 10 },
+          quantity: 4,
+        },
+      },
+      'drop:1'
+    );
+    const shard = dropSpawnFromEvent(
+      {
+        x: 7,
+        y: 8,
+        item: { id: 'fragment_shard', stats: { fragmentValue: 3 }, quantity: 2 },
+      },
+      'drop:2'
+    );
+    const weapon = dropSpawnFromEvent(
+      { x: 9, y: 10, item: { id: 'echo_dagger', type: 'weapon', quantity: 1 } },
+      'drop:3'
+    );
+
+    expect(fragment).toMatchObject({ amount: 40, lifetime: 30 });
+    expect(fragment?.item).toBeUndefined();
+    expect(shard).toMatchObject({ amount: 6, lifetime: 30 });
+    expect(weapon?.item).toMatchObject({ id: 'echo_dagger', quantity: 1 });
+    expect(weapon?.amount).toBe(1);
+    expect(dropSpawnFromEvent({ x: 'bad' } as any, 'drop:4')).toBeNull();
   });
 });
 

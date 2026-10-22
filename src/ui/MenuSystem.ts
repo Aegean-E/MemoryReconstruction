@@ -9,16 +9,18 @@ import type { EventBus } from '@core/EventBus';
 import type { IGameModule, ModuleContext, ModuleState } from '@core/ModuleRegistry';
 import type { GameApplication } from '@core/GameApplication';
 import type { SaveSystem } from '@gameplay/SaveSystem';
+import { buildVictorySummary } from './victorySummary';
 
 export class MenuSystem implements IGameModule {
   readonly name = 'menuSystem';
   readonly version = '1.0.0';
-  readonly dependencies: string[] = ['saveSystem'];
+  readonly dependencies: string[] = ['saveSystem', 'playerSystem'];
   readonly tokenBudget = 1500;
 
   private eventBus: EventBus;
   private gameApp: GameApplication | null = null;
   private saveSystem: SaveSystem | null = null;
+  private playerSystem: any = null;
 
   private overlayContainer: HTMLDivElement | null = null;
   private isMenuOpen = false;
@@ -31,6 +33,7 @@ export class MenuSystem implements IGameModule {
   async initialize(context: ModuleContext): Promise<void> {
     this.gameApp = context.sharedState.get('gameApplication');
     this.saveSystem = context.sharedState.get('saveSystem');
+    this.playerSystem = context.sharedState.get('playerSystem');
 
     this.createDomOverlay();
     this.setupEventListeners();
@@ -40,6 +43,16 @@ export class MenuSystem implements IGameModule {
     this.eventBus.on('game:loaded', () => {
       this.showToast('Run loaded!');
       this.closeMenu();
+    });
+    this.eventBus.on('player:runCompleted', (data: any) => this.showVictory(data));
+    this.eventBus.on('player:inventoryChanged', () => this.refreshInventoryIfOpen());
+    this.eventBus.on('player:equipmentChanged', () => this.refreshInventoryIfOpen());
+    this.eventBus.on('player:runEnded', (data: any) => {
+      this.showToast(
+        data?.permadeath
+          ? 'The run ends here. Your memories return to the void.'
+          : `Memory blurred: ${data?.lostXp ?? 0} XP lost.`
+      );
     });
 
     this.eventBus.emit('menuSystem:ready', {});
@@ -232,6 +245,32 @@ export class MenuSystem implements IGameModule {
           font-size: 0.9rem;
         }
 
+        .inventory-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          text-align: left;
+        }
+
+        .inventory-row strong {
+          color: #ffd98a;
+        }
+
+        .inventory-meta {
+          font-size: 0.75rem;
+          color: #8f96b3;
+          margin-top: 2px;
+        }
+
+        .inventory-actions .menu-btn {
+          width: auto;
+          padding: 4px 10px;
+          font-size: 0.75rem;
+        }
+
         .setting-slider {
           accent-color: #6fe7ff;
           cursor: pointer;
@@ -296,12 +335,23 @@ export class MenuSystem implements IGameModule {
             <button id="btn-resume" class="menu-btn menu-btn-primary">Resume Run</button>
             <button id="btn-save" class="menu-btn">Save Game</button>
             <button id="btn-load" class="menu-btn">Load Game</button>
+            <button id="btn-inventory" class="menu-btn">Inventory & Equipment</button>
             <button id="btn-story" class="menu-btn">Story & Lore</button>
             <button id="btn-tutorial" class="menu-btn">Tutorial & Controls</button>
             <button id="btn-settings" class="menu-btn">Settings</button>
           </div>
 
           <div class="menu-footer-hint">Press [ESC] at any time to toggle menu</div>
+        </div>
+      </div>
+
+      <!-- Inventory Modal -->
+      <div id="inventory-backdrop" class="menu-modal-backdrop">
+        <div class="menu-card" style="max-width: 640px;">
+          <div class="menu-title" style="font-size: 1.8rem;">INVENTORY</div>
+          <div class="menu-subtitle">Equipment & Consumables</div>
+          <div id="inventory-list" class="sub-modal-content"></div>
+          <button id="btn-close-inventory" class="menu-btn menu-btn-primary" style="margin-top: 1.2rem; width: 100%;">Close</button>
         </div>
       </div>
 
@@ -339,10 +389,12 @@ export class MenuSystem implements IGameModule {
             </table>
 
             <h3>Core Gameplay Loop</h3>
-            <p>• <strong>Explore Biomes</strong>: Explore Ruins, Caves, Crystal Depths, and Forests.<br>
-               • <strong>Collect Shards</strong>: Glowing cyan fragments grant XP and memory count.<br>
-               • <strong>Level Up</strong>: Reach level thresholds to unlock Heal, Shield, and Ultimate attacks.<br>
-               • <strong>Combat</strong>: Radial melee slashes deal damage and defeat corrupted entities for kill rewards.</p>
+            <p>• <strong>Explore Biomes</strong>: Ruins, forests, caves, crystal depths, voids and the sanctuary.<br>
+               • <strong>Collect Fragments</strong>: Shards grant XP and memory; chaining pickups or kills within 4s builds Memory Surge.<br>
+               • <strong>Fight with Intent</strong>: Slashes hit a 120° cone and confirmed hits build the combo. Enemy windups are telegraphed—dash out or interrupt them with a heavy hit.<br>
+               • <strong>Loot & Grow</strong>: Kills roll authored loot; memory pickups feed XP while equipment and consumables enter the inventory.<br>
+               • <strong>Inventory</strong>: Open Inventory & Equipment in this menu to use consumables or equip weapons, armor and accessories.<br>
+               • <strong>Finish the Run</strong>: Depth tracks your deepest chunk. Death blurs current-level XP; defeating the Keeper completes the run.</p>
           </div>
           <button id="btn-close-tutorial" class="menu-btn menu-btn-primary" style="margin-top: 1.2rem; width: 100%;">Got it!</button>
         </div>
@@ -372,6 +424,16 @@ export class MenuSystem implements IGameModule {
             </div>
           </div>
           <button id="btn-close-settings" class="menu-btn menu-btn-primary" style="margin-top: 1.2rem; width: 100%;">Save Settings</button>
+        </div>
+      </div>
+
+      <!-- Victory Modal -->
+      <div id="victory-backdrop" class="menu-modal-backdrop">
+        <div class="menu-card">
+          <div class="menu-title">MEMORY RESTORED</div>
+          <div class="menu-subtitle">The Keeper Has Fallen</div>
+          <div id="victory-stats" class="menu-save-info" style="display: block;"></div>
+          <button id="btn-victory-continue" class="menu-btn menu-btn-primary" style="margin-top: 1.2rem; width: 100%;">Continue Walking</button>
         </div>
       </div>
 
@@ -408,6 +470,31 @@ export class MenuSystem implements IGameModule {
       }
     });
 
+    document.getElementById('btn-inventory')?.addEventListener('click', () => {
+      this.renderInventory();
+      this.openSubModal('inventory-backdrop');
+    });
+    document
+      .getElementById('btn-close-inventory')
+      ?.addEventListener('click', () => this.closeSubModal('inventory-backdrop'));
+
+    document.getElementById('inventory-list')?.addEventListener('click', (event) => {
+      const target = (event.target as HTMLElement).closest(
+        '[data-inventory-action]'
+      ) as HTMLElement | null;
+      if (!target || !this.playerSystem) return;
+
+      const action = target.dataset.inventoryAction;
+      const itemId = target.dataset.itemId;
+      const slot = target.dataset.slot;
+
+      if (action === 'use' && itemId) this.playerSystem.useItem(itemId);
+      else if (action === 'equip' && itemId) this.playerSystem.equipItem(itemId);
+      else if (action === 'unequip' && slot) this.playerSystem.unequipSlot(slot);
+
+      this.renderInventory();
+    });
+
     // Sub-modal triggers
     document
       .getElementById('btn-story')
@@ -431,6 +518,108 @@ export class MenuSystem implements IGameModule {
       this.applyAndSaveSettings();
       this.closeSubModal('settings-backdrop');
     });
+
+    document.getElementById('btn-victory-continue')?.addEventListener('click', () => {
+      document.getElementById('victory-backdrop')?.classList.remove('active');
+      this.gameApp?.resume();
+    });
+  }
+
+  private showVictory(data: any): void {
+    if (typeof document === 'undefined') return;
+    const stats = document.getElementById('victory-stats');
+    if (stats) {
+      const summary = buildVictorySummary(data);
+      stats.innerHTML = `
+        <div>Depth reached: <strong>${summary.depth}</strong></div>
+        <div>Runs completed: <strong>${summary.runs}</strong></div>
+        <div>Memory Walker level: <strong>${summary.level}</strong></div>
+        <div>Fragments carried: <strong>${summary.fragments}</strong></div>
+      `;
+    }
+    document.getElementById('victory-backdrop')?.classList.add('active');
+    this.gameApp?.pause();
+  }
+
+  private refreshInventoryIfOpen(): void {
+    if (
+      typeof document !== 'undefined' &&
+      document.getElementById('inventory-backdrop')?.classList.contains('active')
+    ) {
+      this.renderInventory();
+    }
+  }
+
+  private renderInventory(): void {
+    if (typeof document === 'undefined') return;
+    const list = document.getElementById('inventory-list');
+    if (!list) return;
+
+    if (!this.playerSystem) {
+      list.innerHTML = '<p>Inventory unavailable.</p>';
+      return;
+    }
+
+    const inventory = this.playerSystem.getInventory?.() ?? [];
+    const equipment = this.playerSystem.getEquipment?.() ?? {};
+    const escape = (value: any) =>
+      String(value ?? '').replace(/[&<>"']/g, (character) => {
+        const entities: Record<string, string> = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        };
+        return entities[character];
+      });
+    const statLine = (item: any) =>
+      Object.entries(item.stats ?? {})
+        .map(([key, value]) => `${escape(key)} ${escape(value)}`)
+        .join(' &middot; ');
+
+    const slots = ['weapon', 'armor', 'accessory'];
+    let html = '<h3>Equipped</h3>';
+    for (const slot of slots) {
+      const item = equipment[slot];
+      html += `
+        <div class="inventory-row">
+          <div>
+            <strong>${escape(slot)}</strong>: ${item ? escape(item.name) : 'Empty'}
+            ${item ? `<div class="inventory-meta">${statLine(item)}</div>` : ''}
+          </div>
+          ${item ? `<div class="inventory-actions"><button class="menu-btn" data-inventory-action="unequip" data-slot="${escape(slot)}">Unequip</button></div>` : ''}
+        </div>`;
+    }
+
+    html += '<h3>Backpack</h3>';
+    if (inventory.length === 0) {
+      html += '<p>Your backpack is empty.</p>';
+    } else {
+      for (const item of inventory) {
+        const canEquip =
+          item.type === 'weapon' || item.type === 'armor' || item.type === 'accessory';
+        const canUse = item.type === 'consumable' || item.type === 'memory';
+        const action = canEquip
+          ? `<button class="menu-btn" data-inventory-action="equip" data-item-id="${escape(item.id)}">Equip</button>`
+          : canUse
+            ? `<button class="menu-btn" data-inventory-action="use" data-item-id="${escape(item.id)}">Use</button>`
+            : '';
+
+        html += `
+          <div class="inventory-row">
+            <div>
+              <strong>${escape(item.name)}</strong> x${item.quantity}
+              <span class="inventory-meta"> ${escape(item.rarity)} ${escape(item.type)}</span>
+              <div class="inventory-meta">${escape(item.description)}</div>
+              <div class="inventory-meta">${statLine(item)}</div>
+            </div>
+            ${action ? `<div class="inventory-actions">${action}</div>` : ''}
+          </div>`;
+      }
+    }
+
+    list.innerHTML = html;
   }
 
   toggleMenu(): void {

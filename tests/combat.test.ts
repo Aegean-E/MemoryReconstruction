@@ -33,6 +33,8 @@ const makeCombat = async (): Promise<{ combat: CombatSystem; bus: EventBus }> =>
         {
           chunks: new Map(),
           loadedChunks: new Set(),
+          getLoadedChunks: () => [],
+          isSolidAt: () => false,
         },
       ],
       [
@@ -65,12 +67,15 @@ describe('player melee intents', () => {
     expect(intents).toHaveLength(1);
     expect(intents[0]).toMatchObject({
       sourceId: 'player',
-      x: 30,
-      radius: 60,
+      x: gameplayConfig.combat.meleeOffset,
+      radius: gameplayConfig.combat.meleeRange,
       critical: expect.any(Boolean),
       knockbackForce: gameplayConfig.combat.knockbackForce,
+      facing: 1,
+      arc: gameplayConfig.combat.meleeArc,
     });
-    expect(intents[0].damage).toBeCloseTo(player.getStats().damage * 1.1);
+    // The first swing of a chain has no confirmed hit yet, so it deals 1.0x.
+    expect(intents[0].damage).toBeCloseTo(player.getStats().damage);
   });
 
   it('emits a large arena intent for the ultimate', async () => {
@@ -155,6 +160,75 @@ describe('combat attack resolution', () => {
 
     expect(damage).toHaveLength(0);
     expect(kills).toHaveLength(0);
+  });
+
+  it('records a floating damage number for a player attack intent', async () => {
+    const { combat, bus } = await makeCombat();
+    spawnScavenger(bus, 30);
+
+    bus.emitSync('combat:attack', {
+      sourceId: 'player',
+      x: 0,
+      y: 0,
+      radius: 60,
+      damage: 10,
+      critical: false,
+      knockbackForce: 0,
+    });
+
+    expect(combat.getDamageNumbers()).toHaveLength(1);
+    // Scavenger armor 5 reduces 10 to 9 after mitigation.
+    expect(combat.getDamageNumbers()[0]).toMatchObject({ amount: 9, critical: false });
+  });
+
+  it('drops every passing row from the enemy loot table', async () => {
+    const { combat, bus } = await makeCombat();
+    spawnScavenger(bus, 30);
+    const drops: any[] = [];
+    bus.on('item:drop', (data: any) => {
+      drops.push(data);
+    });
+
+    // Force every chance roll to pass; quantity rolls also land on min.
+    (combat as any).rng = () => 0;
+    bus.emitSync('combat:attack', {
+      sourceId: 'player',
+      x: 0,
+      y: 0,
+      radius: 60,
+      damage: 999,
+      critical: false,
+      knockbackForce: 0,
+    });
+
+    expect(drops.map((drop) => drop.item.id)).toEqual([
+      'memory_fragment',
+      'fragment_shard',
+      'memory_elixir',
+    ]);
+    expect(drops.every((drop) => drop.item.quantity >= 1)).toBe(true);
+  });
+
+  it('uses the player crit multiplier for outgoing critical hits', async () => {
+    const { combat, bus } = await makeCombat();
+    spawnScavenger(bus, 30);
+    (combat as any).playerSystem.getStats = () => ({
+      armor: 0,
+      critMultiplier: 2.25,
+    });
+
+    bus.emitSync('combat:attack', {
+      sourceId: 'player',
+      x: 0,
+      y: 0,
+      radius: 60,
+      damage: 10,
+      critical: true,
+      knockbackForce: 0,
+    });
+
+    // 10 physical -> 9 after scavenger armor, then 2.25x -> 20.
+    expect(combat.getDamageNumbers()[0].amount).toBe(20);
   });
 
   it('applies the critical multiplier exactly once', async () => {

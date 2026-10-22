@@ -1,243 +1,230 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "fix-corner-movement-lag",
+    "task_id": "balance-harness",
     "last_phase": "phase 4",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1792522718.0506306,
-    "completed_at": 1792522792.6093411
+    "updated_at": 1792686075.458965,
+    "completed_at": 1792686075.6773243
   },
   "checkpoints": [
     {
-      "task_id": "cleanup-stale-scaffolding",
+      "task_id": "boss-intent-and-guards",
       "phase": "phase 2",
       "phase_num": 2,
-      "description": "[1/1] move the four stale untracked scaffold files to a timestamped temp backup, remove the dangling performance-guidelines reference, regenerate the codebase map, rerun the 7 gates, commit the docs, then strict-verify and push",
+      "description": "[1/4] Execute authored boss phase abilities: forgotten_army summons echoes, void_domain/true_ending ring projectiles, timeline_shift teleports safely, reconstruction_beam fires a spread; [2/4] Balance/guards: exclude bosses from random elites, count a run completion once until death, clear inventory on permadeath; [3/4] Extract victory summary into a pure tested helper; [4/4] ADR/docs/tests/7-gate check",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1792510822.9874206,
-      "timestamp_str": "2026-10-20 18:40:22",
+      "timestamp": 1792664984.751487,
+      "timestamp_str": "2026-10-22 13:29:44",
       "impact_assessment": {
-        "why": "four untracked files from the initial Stellar Drift scaffold block check --strict, and docs/Graphics.md and .aikit/codebase_map.md point at them even though they are not part of the delivery",
-        "benefits": "the project tree becomes clean and delivery-ready, the pending README/LICENSE commit can be verified and pushed, and the docs and AST map stop referencing a broken Python benchmark that belongs to another prototype",
-        "risks": "contract: documentation and generated map only, no runtime or gameplay behaviour changes; dependency: none; concurrency: the untracked files may be user work, so they are moved to a timestamped temp backup instead of deleted; state: none beyond the generated map and ledger",
-        "mitigation": "back up all four paths before touching them, grep every reference, rerun python aikit.py check MemoryReconstruction to 7/7, then stage only the tracked docs and map"
+        "why": "Verification found boss phase abilities were announced but never executed, elite multipliers could stack on bosses, completedRuns could be farmed without dying, permadeath left run loot in inventory, and victory formatting was only DOM-covered",
+        "benefits": "Boss phases now change the fight, deep bosses stay hand-tuned instead of randomly elite, run completion and permadeath semantics are enforceable, and victory data is unit-testable",
+        "risks": "contract: new combat:bossAbility event and pure victorySummary module; dependency: none; concurrency: no other writer; state: runCompleted flag and inventory reset must not wipe meta stats",
+        "mitigation": "Keep ability effects deterministic, guard teleport with solid-tile checks, test phase ability counts/projectiles, elite exclusion, runCompletion guard, permadeath inventory reset and victory summary, then rerun all gates"
       }
     },
     {
-      "task_id": "cleanup-stale-scaffolding",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "checklists: passed; 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); four stale untracked scaffold paths moved to a temp backup, the dangling performance-guidelines reference removed, and the codebase map regenerated",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792510857.4288118,
-      "timestamp_str": "2026-10-20 18:40:57"
-    },
-    {
-      "task_id": "cleanup-stale-scaffolding",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'cleanup-stale-scaffolding' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792510859.7399871,
-      "timestamp_str": "2026-10-20 18:40:59"
-    },
-    {
-      "task_id": "memory-fragment-loop",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/4] progression contract: add gameplay.progression.fragments and abilityUnlocks config, handle player:addMemory in PlayerSystem (fragments -> XP -> level -> ability unlock), and write failing-first tests; [2/4] world collectibles: MemoryFragmentSystem with deterministic chunk spawns, pickup radius, bob animation, collected-set persistence, main.ts registration, and tests; [3/4] presentation and docs: HUD fragment counter and level, README/architecture/graphics updates, ADR-003; [4/4] run all 7 gates, record the checklist, commit, strict-verify and push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792511077.3756769,
-      "timestamp_str": "2026-10-20 18:44:37",
-      "impact_assessment": {
-        "why": "the game already spawns memoryFragment entities and awards memoryValue on kills, but nothing collects world fragments, nothing listens to player:addMemory, the HUD never shows fragments or level, and the progression data is therefore dead state",
-        "benefits": "the core Memory Reconstruction loop becomes playable: explore, collect glowing fragments, earn XP, level up, unlock heal/shield/ultimate, and see progress in the HUD; the loop is deterministic, serializable, and tested",
-        "risks": "contract: new config keys and a new module, existing PlayerSystem API unchanged; dependency: no new packages, PixiJS and Vitest already declared; concurrency: no parallel writer, the tree is clean at start; state: new collected-fragment state is serialized in the new module and PlayerSystem progression remains backward compatible",
-        "mitigation": "write unit tests first for fragment XP, negative amounts, level-up unlocks, chunk spawn extraction and pickup distance; keep PIXI rendering out of the pure helpers; run npm test after each milestone and the full 7-gate check before committing"
-      }
-    },
-    {
-      "task_id": "memory-fragment-loop",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "checklists: passed; 7/7 project gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); added the configurable fragment XP/ability-unlock contract, MemoryFragmentSystem with deterministic ids, pickup radius, bob animation and serialized collected set, HUD fragment/level display, world spawn entries in every biome, cached-chunk reload so fragments and tiles return after streaming out, and failing-first tests for progression, helpers, persistence and chunk streaming",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792511494.3999221,
-      "timestamp_str": "2026-10-20 18:51:34"
-    },
-    {
-      "task_id": "memory-fragment-loop",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'memory-fragment-loop' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792511501.9837809,
-      "timestamp_str": "2026-10-20 18:51:41"
-    },
-    {
-      "task_id": "player-melee-resolution",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] intent contract: add combat:attack and combat:damage events, make PlayerSystem emit slash/ultimate attack intents with sourceId, radius, base damage and crit flag, and add failing-first PlayerSystem tests; [2/3] resolution: CombatSystem handles attack intents with radial hit detection, applies crit once, emits combat:damage separately from combat:hit, and awards XP/memory on player kills, with failing-first tests for in-range, out-of-range and crit; [3/3] update the architecture/ADR, run the 7 gates, record checklists passed, commit, strict-verify and push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792511656.4321406,
-      "timestamp_str": "2026-10-20 18:54:16",
-      "impact_assessment": {
-        "why": "PlayerSystem emits combat:hit for melee with no targetId or sourceId, so CombatSystem's onHit cannot resolve it; enemies never take player melee damage and the existing combat-kill player:addMemory reward path never fires",
-        "benefits": "player slash and ultimate become real damage sources, kills award XP and memory fragments, the fragment loop gains its combat path, and the event contract cleanly separates attack intent from resolved damage",
-        "risks": "contract: new combat:attack/combat:damage events and PlayerSystem stops emitting combat:hit; CombatSystem keeps combat:hit as the targeted incoming-damage input; dependency: none added; concurrency: the tree is clean and no other writer is active; state: no persistent state changes",
-        "mitigation": "write the intent and resolution tests first, keep the existing enemy attack path on combat:hit, assert a single critical multiplier application, and run the full 7-gate check before committing"
-      }
-    },
-    {
-      "task_id": "player-melee-resolution",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "checklists: passed; 7/7 project gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); decoupled combat attack intents from resolved damage with combat:attack and combat:damage events, implemented radial melee hit detection with single crit and knockback in CombatSystem, updated PlayerSystem slash and ultimate attack emitters, updated architecture docs and ADR-004, refreshed codebase map, and added unit tests for attack intent generation, distance gating, crit multiplier, and enemy-to-player hits",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792512598.9767237,
-      "timestamp_str": "2026-10-20 19:09:58"
-    },
-    {
-      "task_id": "player-melee-resolution",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'player-melee-resolution' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792512643.345117,
-      "timestamp_str": "2026-10-20 19:10:43"
-    },
-    {
-      "task_id": "zero-friction-start",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] add start script to package.json, create start.bat and start.sh with node/npm checks; [2/3] update README quick start and tree, record ADR-005; [3/3] run all 7 gates, record checklist, commit, strict-verify and push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792514837.2105696,
-      "timestamp_str": "2026-10-20 19:47:17",
-      "impact_assessment": {
-        "why": "launching the game currently requires manual cd and npm run dev; double-clicking index.html fails on file:// CORS, and npm start fails with missing script",
-        "benefits": "zero-friction startup via start.bat, start.sh, and standard npm start, with automated node presence checks and dependency fallback",
-        "risks": "contract: existing scripts intact, only start alias added; dependency: none added; concurrency: clean tree; state: no state changes",
-        "mitigation": "verify script paths and execution, update README tree for guidelines gate, and run full 7-gate suite"
-      }
-    },
-    {
-      "task_id": "zero-friction-start",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "checklists: passed; 7/7 project gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); added start script to package.json, created start.bat (Windows) and start.sh (Unix) launchers with Node.js/npm verification and dependency fallback, updated README quick start and tree, and recorded ADR-005",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792515001.7636776,
-      "timestamp_str": "2026-10-20 19:50:01"
-    },
-    {
-      "task_id": "zero-friction-start",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'zero-friction-start' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792515018.310964,
-      "timestamp_str": "2026-10-20 19:50:18"
-    },
-    {
-      "task_id": "engine-ux-gameplay-systems",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/6] data imports: move JSON configs to src/data, add @data alias to vite/tsconfig, and update all imports; [2/6] movement: eliminate PLAYER_MOVE feedback loop in PlayerSystem and smooth camera tracking; [3/6] menu & UI: add Title/Pause menu with Start, Resume, Save, Load, Settings, Tutorial, and Story; [4/6] save/load: implement SaveSystem using localStorage with serialized game state; [5/6] settings, tutorial & story: implement settings sliders, interactive tutorial overlay, and intro story dialog; [6/6] tests, docs, ADR-006, 7-gate check, commit and push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792515265.2977986,
-      "timestamp_str": "2026-10-20 19:54:25",
-      "impact_assessment": {
-        "why": "Vite dev blocks publicDir imports breaking startup; PlayerSystem self-event loop causes severe movement lag; game lacks menu, save/load, settings, tutorial, and story",
-        "benefits": "clean startup in Vite dev, smooth 60fps movement, complete title/pause menu, persistent save/load, settings controls, interactive tutorial, and lore presentation",
-        "risks": "contract: existing module APIs preserved, save data versioned; dependency: zero external deps added; concurrency: clean tree; state: localStorage namespaced",
-        "mitigation": "test save/load serialization, verify movement stability, maintain backward compatible imports, and pass all 7 gates"
-      }
-    },
-    {
-      "task_id": "engine-ux-gameplay-systems",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "checklists: passed; 7/7 project gates green (test, lint, typecheck, build, hygiene, guidelines, secrets); resolved Vite public directory import errors by moving configs to src/data with @data alias, fixed player movement jitter by removing recursive PLAYER_MOVE event loop, added SaveSystem for persistent game state and settings, created MenuSystem with Title/Pause screens, interactive Tutorial, Story prologue, and Audio/Video settings, and added unit tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792515833.4283457,
-      "timestamp_str": "2026-10-20 20:03:53"
-    },
-    {
-      "task_id": "engine-ux-gameplay-systems",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'engine-ux-gameplay-systems' completed successfully.",
-      "status": "completed",
-      "timestamp": 1792515873.7716846,
-      "timestamp_str": "2026-10-20 20:04:33"
-    },
-    {
-      "task_id": "fix-corner-movement-lag",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/4] EventBus circular buffer: replace O(N) array.shift() with ring buffer in EventBus; [2/4] WorldSystem streaming & noise: throttle onPlayerMove to chunk crossings, remove string-allocating noiseCache, and fix negative tile lookup; [3/4] Chunk graphics batching: batch chunk tiles into unified PIXI Graphics per chunk; [4/4] ADR-007, tests, 7-gate verification, commit and push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792516629.7178252,
-      "timestamp_str": "2026-10-20 20:17:09",
-      "impact_assessment": {
-        "why": "moving around corners causes stutter due to per-frame chunk loops, 256 Graphics objects per chunk, string noiseCache leaks, negative tile modulo bugs, and 1200 O(N) eventHistory shifts/sec",
-        "benefits": "smooth 60fps corner navigation, 250x fewer scene graph display objects, zero memory leak, and instant integer noise hashing",
-        "risks": "contract: getHistory and getTileAt maintain contracts; dependency: none added; concurrency: clean tree; state: no state changes",
-        "mitigation": "test negative coordinate tile resolution and ring buffer history, verify all 7 gates"
-      }
-    },
-    {
-      "task_id": "fix-corner-movement-lag",
+      "task_id": "boss-intent-and-guards",
       "phase": "phase 3",
       "phase_num": 3,
-      "description": "[milestone 2/4] WorldSystem streaming and noise: gate onPlayerMove to chunk crossings, integer noise hash (unbounded string cache removed), floored-modulo tile lookup for negative coordinates; 11 new tests; checklists: passed",
+      "description": "[milestones 1-3/4] Boss phase abilities execute (summons, rings, teleport, spread); bosses excluded from random elites; run completion guarded once per run; permadeath clears run inventory; victory summary extracted and tested; collection snapshots prevent phase-spawned minions being hit by the triggering swing. 97 tests. checklists: passed",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1792522717.7255633,
-      "timestamp_str": "2026-10-20 21:58:37"
+      "timestamp": 1792665419.4135993,
+      "timestamp_str": "2026-10-22 13:36:59"
     },
     {
-      "task_id": "fix-corner-movement-lag",
-      "phase": "phase 3",
-      "phase_num": 3,
-      "description": "[milestone 3/4] Chunk graphics batching: one PIXI Graphics per chunk with atlas-frame fill matrix instead of one object per tile; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1792522717.8924346,
-      "timestamp_str": "2026-10-20 21:58:37"
-    },
-    {
-      "task_id": "fix-corner-movement-lag",
+      "task_id": "boss-intent-and-guards",
       "phase": "phase 4",
       "phase_num": 4,
-      "description": "[milestone 4/4] ADR-007, README, 60 tests passing, 7/7 Phase 4 gates; checklists: passed",
+      "description": "[milestone 4/4] Phase 4: 97 tests across 10 files, 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets), ADR-011, README/ARCHITECTURE updates, diff check clean. checklists: passed",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1792522718.0506306,
-      "timestamp_str": "2026-10-20 21:58:38"
+      "timestamp": 1792665425.7155068,
+      "timestamp_str": "2026-10-22 13:37:05"
     },
     {
-      "task_id": "fix-corner-movement-lag",
+      "task_id": "boss-intent-and-guards",
       "phase": "completed",
       "phase_num": 5,
-      "description": "Task 'fix-corner-movement-lag' completed successfully.",
+      "description": "Task 'boss-intent-and-guards' completed successfully.",
       "status": "completed",
-      "timestamp": 1792522792.6093428,
-      "timestamp_str": "2026-10-20 21:59:52"
+      "timestamp": 1792665425.9799726,
+      "timestamp_str": "2026-10-22 13:37:05"
+    },
+    {
+      "task_id": "boss-intent-and-guards",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Post-completion verification: DoT ticks now cross boss phase thresholds, entity updates snapshot their collection, and the runCompleted guard round-trips through save/load. 99 tests, 7/7 gates, diff check clean. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792672785.4720845,
+      "timestamp_str": "2026-10-22 15:39:45"
+    },
+    {
+      "task_id": "boss-intent-and-guards",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'boss-intent-and-guards' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792672785.700924,
+      "timestamp_str": "2026-10-22 15:39:45"
+    },
+    {
+      "task_id": "boss-intent-and-guards",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Final verification: DoT phase transitions, entity-loop snapshot, serialized runCompleted guard, and keeper phase ability tests (timeline_shift, reconstruction_beam, true_ending). 100 tests, 7/7 gates, diff check clean. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792673029.690666,
+      "timestamp_str": "2026-10-22 15:43:49"
+    },
+    {
+      "task_id": "boss-intent-and-guards",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'boss-intent-and-guards' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792673030.1664214,
+      "timestamp_str": "2026-10-22 15:43:50"
+    },
+    {
+      "task_id": "rc-stabilization",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Add GitHub Actions CI for npm ci, lint, test, typecheck and build; [2/4] Bring the in-game tutorial in line with the current combat/run mechanics; [3/4] Add content-data integrity tests for enemies/items/loot/phase/elite invariants; [4/4] Docs/ADR and full gate check",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792673452.0638883,
+      "timestamp_str": "2026-10-22 15:50:52",
+      "impact_assessment": {
+        "why": "The project has no CI, the onboarding text still describes radial slashes, and content JSON is only validated indirectly by whichever code happens to import it",
+        "benefits": "Every push gets an objective quality gate, new players learn the actual mechanics, and broken loot/phase/stats data fails tests before it reaches playtests",
+        "risks": "contract: new tests only, CI workflow; dependency: none; concurrency: no other writer; state: no runtime state changes",
+        "mitigation": "Keep the CI workflow on the declared Node engine, test only authored data invariants, and rerun all local gates"
+      }
+    },
+    {
+      "task_id": "rc-stabilization",
+      "phase": "phase 3",
+      "phase_num": 3,
+      "description": "[milestones 1-3/4] CI workflow, tutorial rewrite, content-data tests, README tree/CI docs, ADR-012. 107 tests. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792674037.8364348,
+      "timestamp_str": "2026-10-22 16:00:37"
+    },
+    {
+      "task_id": "rc-stabilization",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[milestone 4/4] Phase 4: 107 tests across 11 files, 7/7 gates green, diff check clean, ADR-012, README/ARCHITECTURE updated. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792674058.3210082,
+      "timestamp_str": "2026-10-22 16:00:58"
+    },
+    {
+      "task_id": "rc-stabilization",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'rc-stabilization' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792674058.5966508,
+      "timestamp_str": "2026-10-22 16:00:58"
+    },
+    {
+      "task_id": "usable-loot",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Item use/equip: useItem heals/restores/invincibility/converts memory/unlocks abilities; equipItem/unequipSlot with weapon/armor/accessory slots and equipment-aware derived stats; equipment serialized and cleared by permadeath; inventory overlay with Use/Equip/Unequip actions and live refresh; [2/2] docs/ADR-013 and full gates. 110 tests.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792676989.4597201,
+      "timestamp_str": "2026-10-22 16:49:49",
+      "impact_assessment": {
+        "why": "Loot tables produced equipment and consumables that could not be used, making the loot loop dead weight and the tutorial dishonest",
+        "benefits": "Dropped items now change the next fight, equipment persists across saves, and permadeath cleanly removes run gear",
+        "risks": "contract: EquipmentState, use/equip APIs, inventory events; dependency: MenuSystem now depends on playerSystem; concurrency: no other writer; state: equipment and inventory serialize, unsimulated item stats remain stored but inactive",
+        "mitigation": "Unit-test consumption, stat application/removal, save round-trip and permadeath clearing; keep UI DOM-only; rerun all gates"
+      }
+    },
+    {
+      "task_id": "usable-loot",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[milestone 2/2] Phase 4: 110 tests across 11 files, 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets), ADR-013, README/ARCHITECTURE updates, diff check clean. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792676994.011145,
+      "timestamp_str": "2026-10-22 16:49:54"
+    },
+    {
+      "task_id": "usable-loot",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'usable-loot' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792676994.2191362,
+      "timestamp_str": "2026-10-22 16:49:54"
+    },
+    {
+      "task_id": "usable-loot",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "Post-completion verification: player crit gear now affects only outgoing crits while incoming enemy crits use the global multiplier; memory_fragment loot pickups honor authored memoryValue (10) instead of 1; 112 tests, 7/7 gates, diff check clean. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792683344.90818,
+      "timestamp_str": "2026-10-22 18:35:44"
+    },
+    {
+      "task_id": "usable-loot",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'usable-loot' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792683345.2106972,
+      "timestamp_str": "2026-10-22 18:35:45"
+    },
+    {
+      "task_id": "balance-harness",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/2] Add deterministic balance duel harness (tests/balance.test.ts) with TTK/damage/hit metrics and BALANCE_REPORT matrix; [2/2] Fix light knockback cancelling every windup, add configurable meleeOffset/meleeRange (20+35), update docs/ADR-014 and regressions. 117 tests.",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792686064.3272157,
+      "timestamp_str": "2026-10-22 19:21:04",
+      "impact_assessment": {
+        "why": "Balance was tuned by intuition; a deterministic duel matrix was needed to catch melee enemies never damaging a stationary player",
+        "benefits": "Repeated, seed-stable TTK/damage metrics; melee enemies now complete windups and threaten the player; reach is configurable instead of hardcoded",
+        "risks": "contract: combat.meleeOffset/meleeRange and windup interrupt semantics; dependency: none; concurrency: no other writer; state: none",
+        "mitigation": "Lock behavior with light-hit, heavy-hit, scavenger, determinism and Keeper tests; document stationary-duel limits; rerun all gates"
+      }
+    },
+    {
+      "task_id": "balance-harness",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[milestone 2/2] Phase 4: 117 tests across 12 files, 7/7 gates green (test, lint, typecheck, build, hygiene, guidelines, secrets), ADR-014, README/ARCHITECTURE updates, balance matrix verified, diff check clean. checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1792686075.458965,
+      "timestamp_str": "2026-10-22 19:21:15"
+    },
+    {
+      "task_id": "balance-harness",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'balance-harness' completed successfully.",
+      "status": "completed",
+      "timestamp": 1792686075.6773257,
+      "timestamp_str": "2026-10-22 19:21:15"
     }
   ]
 }

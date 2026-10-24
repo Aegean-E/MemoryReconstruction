@@ -1,5 +1,7 @@
 # Memory Reconstruction
 
+[![AIKit Integrated](https://img.shields.io/badge/AIKit-integrated-6f42c1)](https://github.com/Aegean-E/AIKit)
+
 **Action-Roguelike Metroidvania about rebuilding a fragmented world from lost memories.**
 
 ![Game Banner](assets/banner.png)
